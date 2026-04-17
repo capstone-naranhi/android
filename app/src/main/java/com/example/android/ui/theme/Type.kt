@@ -2,33 +2,52 @@ package com.example.android.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.android.R
 
-// Set of Material typography styles to start with
+
+val NanumSquareRound = FontFamily(
+    Font(R.font.nanum_square_round_otfeb, FontWeight.ExtraBold),
+    Font(R.font.nanum_square_round_otfb, FontWeight.Bold),
+    Font(R.font.nanum_square_round_otfr, FontWeight.Normal)
+)
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+    headlineLarge = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 30.sp
     ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+    headlineMedium = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp
     )
-    */
 )

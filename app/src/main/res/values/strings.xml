@@ -1,3 +1,33 @@
 <resources>
-    <string name="app_name">Android</string>
+    <!-- 앱 기본 -->
+    <string name="app_name">아이지킴</string>
+
+    <!-- 이벤트 제목 -->
+    <string name="event_suffocation_title">질식 위험</string>
+    <string name="event_fall_title">낙상 감지</string>
+    <string name="event_climbing_title">가구 등반 감지</string>
+    <string name="event_crying_title">울음 감지</string>
+    <string name="event_fussing_title">칭얼거림 감지</string>
+    <string name="event_scream_title">비명 감지</string>
+
+    <!-- 이벤트 기본 설명 -->
+    <string name="event_suffocation_description">뒤집힌 자세 또는 이불 덮임이 감지되었습니다</string>
+    <string name="event_fall_description">침대나 소파에서 떨어짐이 감지되었습니다</string>
+    <string name="event_climbing_description">가구 위로 올라가는 의심 동작이 감지되었습니다</string>
+    <string name="event_crying_description">지속적인 울음이 감지되었습니다</string>
+    <string name="event_fussing_description">칭얼거림이 감지되었습니다</string>
+    <string name="event_scream_description">갑작스러운 비명 소리가 감지되었습니다</string>
+
+    <!-- 심각도 텍스트 -->
+    <string name="severity_danger">위험</string>
+    <string name="severity_warning">주의</string>
+    <string name="severity_info">정보</string>
+
+    <!-- 읽음 상태 -->
+    <string name="event_read">읽음</string>
+    <string name="event_unread">읽지 않음</string>
+
+    <!-- 공통 -->
+    <string name="event_icon_content_description">이벤트 아이콘</string>
+    <string name="event_detail_arrow_content_description">상세 보기</string>
 </resources>
