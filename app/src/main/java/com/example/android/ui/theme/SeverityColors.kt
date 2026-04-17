@@ -2,16 +2,15 @@ package com.example.android.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+/** 상태 종류 */
+enum class StatusType { SUCCESS, WARNING, DANGER, INFO }
+
 /**
  * DANGER / WARNING / INFO / SUCCESS 각 심각도에 대응하는 색상 묶음.
  *
- * ### 만든 이유
- * `EventCard`와 `StatusCard` 양쪽에 거의 동일한 `when` 분기가 중복으로 존재했음.
- * 색상을 한 곳에서 관리하고, 각 컴포넌트는 `SeverityColors.of(severity)` 만 호출.
- *
- * @param container   카드 배경색
- * @param content     텍스트·아이콘 강조색
- * @param iconBg      아이콘 박스 배경색
+ * @param container  카드 배경색
+ * @param content    텍스트·아이콘 강조색
+ * @param iconBg     아이콘 박스 배경색
  */
 data class SeverityColors(
     val container: Color,
@@ -24,5 +23,13 @@ data class SeverityColors(
         fun info() = SeverityColors(InfoContainer, InfoContent, InfoIconBg)
         fun success() = SeverityColors(SuccessContainer, SuccessContent, SuccessIconBg)
         fun read() = SeverityColors(ReadContainer, ReadContent, ReadIconBg)
+
+        /** [StatusType]으로부터 색상 묶음을 반환한다. */
+        fun of(statusType: StatusType) = when (statusType) {
+            StatusType.SUCCESS -> success()
+            StatusType.WARNING -> warning()
+            StatusType.DANGER -> danger()
+            StatusType.INFO -> info()
+        }
     }
 }

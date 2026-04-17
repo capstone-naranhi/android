@@ -27,16 +27,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.android.ui.theme.Dimens
-import com.example.android.ui.theme.NeutralSubText
 import com.example.android.ui.theme.NeutralText
 import com.example.android.ui.theme.SeverityColors
+import com.example.android.ui.theme.StatusType
 
 /**
  * 장치 상태 항목 1개
  *
- * @param label      장치 이름 (예: "카메라", "배터리", "Wi-Fi")
- * @param statusText 상태 설명 (예: "연결됨", "85%", "강함")
- * @param statusType 시각 상태 타입
+ * @param label      장치 이름 (예: "Jetson Nano", "카메라", "마이크")
+ * @param statusText 상태 설명 (예: "연결됨", "연결 안됨")
+ * @param statusType 상태 시각 타입
  * @param icon       장치 아이콘
  */
 data class DeviceStatusItem(
@@ -49,8 +49,7 @@ data class DeviceStatusItem(
 /**
  * 홈화면 "장치 상태" 섹션 카드
  *
- * 카메라·배터리·Wi-Fi 등 연결된 장치의 현재 상태를
- * 한눈에 볼 수 있도록 리스트 형태로 보여준다.
+ * Jetson Nano·카메라·마이크의 현재 연결 상태를 리스트 형태로 보여준다.
  *
  * @param devices  표시할 장치 상태 목록
  */
@@ -78,19 +77,13 @@ fun DeviceStatusCard(
 
 @Composable
 private fun DeviceStatusRow(item: DeviceStatusItem) {
-    val colors = when (item.statusType) {
-        StatusType.SUCCESS -> SeverityColors.success()
-        StatusType.WARNING -> SeverityColors.warning()
-        StatusType.DANGER  -> SeverityColors.danger()
-        StatusType.INFO    -> SeverityColors.info()
-    }
+    val colors = SeverityColors.of(item.statusType)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // 아이콘 + 장치 이름
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -115,7 +108,6 @@ private fun DeviceStatusRow(item: DeviceStatusItem) {
             )
         }
 
-        // 상태 배지
         StatusBadge(text = item.statusText, colors = colors)
     }
 }
@@ -136,7 +128,7 @@ private fun StatusBadge(text: String, colors: SeverityColors) {
     }
 }
 
-// ── 미리 만들어 둔 샘플 데이터 (HomeScreen Preview 용) ─────────────────────────
+// ── 샘플 데이터 (Preview 전용) ────────────────────────────────────────────────
 
 fun sampleDeviceStatusItems() = listOf(
     DeviceStatusItem(

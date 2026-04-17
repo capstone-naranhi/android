@@ -28,7 +28,6 @@ import com.example.android.ui.components.DeviceStatusCard
 import com.example.android.ui.components.EventCard
 import com.example.android.ui.components.SectionHeader
 import com.example.android.ui.components.StatusCard
-import com.example.android.ui.components.StatusType
 import com.example.android.ui.components.TodaySummaryCard
 import com.example.android.ui.components.TodaySummaryMetric
 import com.example.android.ui.components.TopAppBar
@@ -37,6 +36,8 @@ import com.example.android.ui.theme.AndroidTheme
 import com.example.android.ui.theme.DangerContent
 import com.example.android.ui.theme.Dimens
 import com.example.android.ui.theme.InfoContent
+import com.example.android.ui.theme.StatusOnline
+import com.example.android.ui.theme.StatusType
 import com.example.android.ui.theme.SuccessContent
 import com.example.android.ui.theme.WarningContent
 
@@ -71,6 +72,7 @@ fun HomeScreen() {
                 TopAppBar(
                     title = "앱 이름",
                     subtitle = "실시간 모니터링 중",
+                    subtitleBadgeColor = StatusOnline,
                     showProfileButton = true,
                     showNotificationButton = true,
                     unreadNotificationCount = 2,

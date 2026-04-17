@@ -2,6 +2,7 @@ package com.example.android.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,34 +19,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.android.ui.theme.BrandPrimary
+import com.example.android.ui.theme.Dimens
+import com.example.android.ui.theme.NeutralSubText
+import com.example.android.ui.theme.NeutralSurface
 
 /**
  * 오늘의 요약 카드 안에서 사용하는 항목 1개
  *
- * 예:
- * - 위험 감지 / 2회
- * - 울음 / 3회
- * - 칭얼거림 / 7회
- * - 비명 / 0회
+ * @param label      항목명 (예: "위험 감지", "울음")
+ * @param valueText  수치 (예: "2회", "3회")
+ * @param valueColor 수치 색상 (기본값: [BrandPrimary])
  */
 data class TodaySummaryMetric(
     val label: String,
     val valueText: String,
-    val valueColor: Color = Color(0xFF264A7C)
+    val valueColor: Color = BrandPrimary
 )
 
 /**
- * 홈 화면에서 "오늘의 요약"을 보여주는 카드
+ * 홈 화면 "오늘의 요약" 카드
  *
- * 현재 버전은 카드 내부 제목/아이콘을 없애고,
  * 바깥 SectionHeader와 함께 사용하는 구조를 전제로 한다.
  *
- * 즉:
- * - 바깥: SectionHeader("오늘의 요약", statusText = "분석중")
- * - 안쪽: 요약 항목들만 표시
- *
  * @param metrics 표시할 요약 항목 리스트
- * @param modifier 외부에서 여백/크기 조절용 Modifier
  */
 @Composable
 fun TodaySummaryCard(
@@ -54,62 +51,38 @@ fun TodaySummaryCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        )
+        shape = RoundedCornerShape(Dimens.radiusCard),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        androidx.compose.foundation.layout.Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-            /**
-             * 요약 항목 리스트
-             *
-             * 지금은 세로 리스트 구조.
-             * 홈 화면에서 빠르게 훑어보기에 적합하다.
-             */
+        Column(modifier = Modifier.padding(Dimens.spaceXl)) {
             metrics.forEachIndexed { index, metric ->
                 TodaySummaryMetricRow(metric = metric)
-
                 if (index != metrics.lastIndex) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spaceM))
                 }
             }
         }
     }
 }
 
-/**
- * 오늘의 요약 카드 안에서 사용하는 한 줄 항목 UI
- *
- * 왼쪽: 항목명
- * 오른쪽: 수치/값
- */
 @Composable
-private fun TodaySummaryMetricRow(
-    metric: TodaySummaryMetric
-) {
+private fun TodaySummaryMetricRow(metric: TodaySummaryMetric) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = Color(0xFFF7F9FC),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .background(color = NeutralSurface, shape = RoundedCornerShape(Dimens.radiusS))
+            .padding(horizontal = Dimens.spaceL, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = metric.label,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color(0xFF5B6B84)
+            color = NeutralSubText
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(Dimens.spaceM))
 
         Text(
             text = metric.valueText,

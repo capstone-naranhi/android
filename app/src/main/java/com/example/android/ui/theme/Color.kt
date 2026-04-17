@@ -39,3 +39,7 @@ val NeutralSubText = Color(0xFF5B6B84)
 val NeutralUnselected = Color(0xFF7A869A)
 val NeutralSurface = Color(0xFFF7F9FC)
 val AppBackground = Color(0xFFF5F7FB)
+
+// ─── Status ───────────────────────────────────────────────────────────────────
+val StatusOnline = Color(0xFF4CAF50)     // 실시간 연결 중 배지
+val VideoBackground = Color(0xFF1A1E2E)  // 영상 플레이어 배경

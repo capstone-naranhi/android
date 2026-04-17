@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -35,6 +36,7 @@ import com.example.android.ui.theme.Dimens
  *
  * @param title                     화면의 큰 제목
  * @param subtitle                  제목 아래 들어갈 작은 설명 문구
+ * @param subtitleBadgeColor        subtitle 앞에 표시할 상태 배지 색상 (null이면 미표시)
  * @param showBackButton            뒤로가기 버튼 표시 여부
  * @param showProfileButton         프로필 버튼 표시 여부
  * @param showRefreshButton         새로고침 버튼 표시 여부
@@ -49,6 +51,7 @@ import com.example.android.ui.theme.Dimens
 fun TopAppBar(
     title: String,
     subtitle: String? = null,
+    subtitleBadgeColor: Color? = null,
     showBackButton: Boolean = false,
     showProfileButton: Boolean = false,
     showRefreshButton: Boolean = false,
@@ -101,11 +104,24 @@ fun TopAppBar(
                         )
                         if (subtitle != null) {
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.92f)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (subtitleBadgeColor != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = subtitleBadgeColor,
+                                                shape = CircleShape
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.size(Dimens.spaceS))
+                                }
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White.copy(alpha = 0.92f)
+                                )
+                            }
                         }
                     }
                 }

@@ -22,32 +22,32 @@ val Typography = Typography(
     ),
     headlineMedium = TextStyle(
         fontFamily = NanumSquareRound,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 24.sp
     ),
     titleLarge = TextStyle(
         fontFamily = NanumSquareRound,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 22.sp
     ),
     titleMedium = TextStyle(
         fontFamily = NanumSquareRound,
-        fontWeight = FontWeight.Bold,
-        fontSize = 18.sp
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 20.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = NanumSquareRound,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = NanumSquareRound,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp
     ),
     labelLarge = TextStyle(
         fontFamily = NanumSquareRound,
         fontWeight = FontWeight.Bold,
-        fontSize = 14.sp
+        fontSize = 16.sp
     )
 )

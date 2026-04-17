@@ -23,9 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.android.ui.theme.Dimens
 import com.example.android.ui.theme.SeverityColors
-
-/** 상태 종류 */
-enum class StatusType { SUCCESS, WARNING, DANGER, INFO }
+import com.example.android.ui.theme.StatusType
 
 /**
  * 현재 상태 카드
@@ -41,13 +39,7 @@ fun StatusCard(
     statusType: StatusType,
     modifier: Modifier = Modifier
 ) {
-    // Triple 대신 SeverityColors — 필드 이름이 명확해서 실수 없음
-    val colors = when (statusType) {
-        StatusType.SUCCESS -> SeverityColors.success()
-        StatusType.WARNING -> SeverityColors.warning()
-        StatusType.DANGER -> SeverityColors.danger()
-        StatusType.INFO -> SeverityColors.info()
-    }
+    val colors = SeverityColors.of(statusType)
 
     Card(
         modifier = modifier.fillMaxWidth(),
