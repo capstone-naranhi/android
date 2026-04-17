@@ -30,4 +30,11 @@
     <!-- 공통 -->
     <string name="event_icon_content_description">이벤트 아이콘</string>
     <string name="event_detail_arrow_content_description">상세 보기</string>
+
+    <!-- 알림 목록 화면 -->
+    <string name="alert_screen_title">알림</string>
+    <string name="alert_filter_all">전체</string>
+    <string name="alert_filter_danger">위험</string>
+    <string name="alert_filter_warning">주의</string>
+    <string name="alert_filter_info">정보</string>
 </resources>

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -56,11 +57,13 @@ fun TopAppBar(
     showProfileButton: Boolean = false,
     showRefreshButton: Boolean = false,
     showNotificationButton: Boolean = false,
+    showSettingsButton: Boolean = false,
     unreadNotificationCount: Int = 0,
     onBackClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val barColor = MaterialTheme.colorScheme.primary
@@ -173,6 +176,15 @@ fun TopAppBar(
                             imageVector = Icons.Outlined.Refresh,
                             contentDescription = "새로고침",
                             onClick = onRefreshClick
+                        )
+                    }
+
+                    if (showSettingsButton) {
+                        Spacer(modifier = Modifier.size(Dimens.spaceS))
+                        ActionIconBox(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = "설정",
+                            onClick = onSettingsClick
                         )
                     }
                 }

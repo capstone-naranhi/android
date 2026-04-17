@@ -92,7 +92,11 @@ fun LiveScreen() {
                 TopAppBar(
                     title = "실시간 모니터링",
                     subtitle = "실시간 스트리밍 중",
-                    subtitleBadgeColor = StatusOnline
+                    subtitleBadgeColor = StatusOnline,
+                    showProfileButton = true,
+                    showNotificationButton = true,
+                    unreadNotificationCount = 2,
+                    onNotificationClick = {}
                 )
                 Spacer(modifier = Modifier.height(40.dp))
             }

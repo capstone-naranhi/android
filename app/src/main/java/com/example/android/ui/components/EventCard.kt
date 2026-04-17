@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -78,9 +79,9 @@ fun EventCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             // 왼쪽: 아이콘 + 텍스트
             Row(
@@ -115,30 +116,11 @@ fun EventCard(
                 Spacer(modifier = Modifier.size(Dimens.spaceL))
 
                 Column {
-                    // 제목 + 배지
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(event.eventType.titleResId),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.content
-                        )
-                        Spacer(modifier = Modifier.size(Dimens.spaceS))
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = badgeBackground,
-                                    shape = RoundedCornerShape(999.dp)
-                                )
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = stringResource(severity.badgeTextResId),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = badgeText
-                            )
-                        }
-                    }
-
+                    Text(
+                        text = stringResource(event.eventType.titleResId),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colors.content
+                    )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(
                         text = messageText,
@@ -154,13 +136,34 @@ fun EventCard(
                 }
             }
 
-            // 오른쪽: 화살표
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                contentDescription = stringResource(R.string.event_detail_arrow_content_description),
-                tint = arrowColor,
-                modifier = Modifier.size(Dimens.iconM)
-            )
+            Spacer(modifier = Modifier.width(Dimens.spaceS))
+
+            // 오른쪽: 심각도 배지 + 화살표
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = badgeBackground,
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = stringResource(severity.badgeTextResId),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = badgeText
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = stringResource(R.string.event_detail_arrow_content_description),
+                    tint = arrowColor,
+                    modifier = Modifier.size(Dimens.iconM)
+                )
+            }
         }
     }
 }
