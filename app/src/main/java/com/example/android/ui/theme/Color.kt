@@ -43,3 +43,23 @@ val AppBackground = Color(0xFFF5F7FB)
 // ─── Status ───────────────────────────────────────────────────────────────────
 val StatusOnline = Color(0xFF4CAF50)     // 실시간 연결 중 배지
 val VideoBackground = Color(0xFF1A1E2E)  // 영상 플레이어 배경
+
+// ─── Dark Theme Backgrounds ───────────────────────────────────────────────────
+val DarkBg           = Color(0xFF131520)
+val DarkSurface      = Color(0xFF1C2030)
+val DarkCard         = Color(0xFF252A3C)
+val DarkOnSurface    = Color(0xFFE4E8F0)
+val DarkOnSurfaceVar = Color(0xFF8B96AA)
+
+// ─── Safety Status Card ───────────────────────────────────────────────────────
+val SafeCardBg       = Color(0xFFCCF2D8)
+val SafeCardAccent   = Color(0xFF1A7A3C)
+val SafeChipBg       = Color(0xFFADE8C0)
+
+val CautionCardBg    = Color(0xFFFEEEC8)
+val CautionCardAccent= Color(0xFF946200)
+val CautionChipBg    = Color(0xFFFCE29A)
+
+val DangerCardBg     = Color(0xFFFFDFDF)
+val DangerCardAccent = Color(0xFFB71C1C)
+val DangerChipBg     = Color(0xFFFFCCCC)

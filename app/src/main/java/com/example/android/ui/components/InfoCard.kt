@@ -22,10 +22,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.android.ui.theme.Dimens
-import com.example.android.ui.theme.InfoContainer
 import com.example.android.ui.theme.InfoContent
+import com.example.android.ui.theme.NeutralSubText
+import com.example.android.ui.theme.NeutralText
 
 
 /** 안내 인포메이션 카드 (X 버튼으로 닫기 가능) */
@@ -37,7 +39,7 @@ fun InfoCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.radiusCard),
-        colors = CardDefaults.cardColors(containerColor = InfoContainer),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -68,7 +70,7 @@ fun InfoCard(
             Text(
                 text = "영상 데이터는 암호화되어 전송되며, 보호자만 접근할 수 있습니다.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = InfoContent,
+                color = NeutralText,
                 modifier = Modifier.weight(1f)
             )
 
@@ -76,7 +78,7 @@ fun InfoCard(
                 Icon(
                     imageVector = Icons.Outlined.Close,
                     contentDescription = "닫기",
-                    tint = InfoContent.copy(alpha = 0.7f),
+                    tint = NeutralSubText,
                     modifier = Modifier.size(20.dp)
                 )
             }

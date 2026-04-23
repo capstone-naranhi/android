@@ -13,13 +13,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.android.data.model.ActivityItem
 import com.example.android.ui.theme.Dimens
+import com.example.android.ui.theme.NeutralSurface
 import com.example.android.ui.theme.NeutralText
 
-/** 최근 활동 한 줄 */
+/**
+ * 최근 활동 한 줄
+ *
+ * @param activity
+ * @param modifier
+ */
 @Composable
 fun ActivityRow(
     activity: ActivityItem,
@@ -33,10 +38,7 @@ fun ActivityRow(
     ) {
         Box(
             modifier = Modifier
-                .background(
-                    color = Color(0xFFEEF2F8),
-                    shape = RoundedCornerShape(10.dp)
-                )
+                .background(color = NeutralSurface, shape = RoundedCornerShape(10.dp))
                 .padding(horizontal = 10.dp, vertical = 5.dp)
         ) {
             Text(

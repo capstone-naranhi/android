@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -151,6 +153,27 @@ fun VideoPlayerCard(modifier: Modifier = Modifier) {
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
+            )
+        }
+
+        // 전체보기 아이콘
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(Dimens.spaceM)
+                .background(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .clickable { /* 전체화면 전환 */ }
+                .padding(6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Fullscreen,
+                contentDescription = "전체화면",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
             )
         }
     }

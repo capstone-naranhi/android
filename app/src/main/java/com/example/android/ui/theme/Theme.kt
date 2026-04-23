@@ -1,42 +1,27 @@
 package com.example.android.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val LightColorScheme = lightColorScheme(
-    primary = BrandPrimary,
-    primaryContainer = BrandPrimaryLight,
-    background = AppBackground,
-    surface = AppBackground,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    onBackground = NeutralText,
-    onSurface = NeutralText,
+private val AppColorScheme = darkColorScheme(
+    primary          = Color(0xFF7BA7E0),
+    primaryContainer = BrandPrimary,
+    background       = DarkBg,
+    surface          = DarkSurface,
+    surfaceVariant   = DarkCard,
+    onPrimary        = Color.White,
+    onBackground     = DarkOnSurface,
+    onSurface        = DarkOnSurface,
+    onSurfaceVariant = DarkOnSurfaceVar,
 )
 
 @Composable
-fun AndroidTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // 동적 색상은 기본 비활성화 — 앱 브랜드 색상 유지
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        else -> LightColorScheme
-    }
-
+fun AndroidTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = AppColorScheme,
+        typography  = Typography,
+        content     = content
     )
 }

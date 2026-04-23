@@ -23,10 +23,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.android.ui.theme.DarkOnSurface
+import com.example.android.ui.theme.DarkSurface
 import com.example.android.ui.theme.Dimens
+import com.example.android.ui.theme.NanumSquareRound
 import com.example.android.ui.theme.NeutralText
 import com.example.android.ui.theme.SeverityColors
 import com.example.android.ui.theme.StatusType
@@ -34,7 +40,7 @@ import com.example.android.ui.theme.StatusType
 /**
  * 장치 상태 항목 1개
  *
- * @param label      장치 이름 (예: "Jetson Nano", "카메라", "마이크")
+ * @param label      장치 이름 (예: "보드", "카메라", "마이크")
  * @param statusText 상태 설명 (예: "연결됨", "연결 안됨")
  * @param statusType 상태 시각 타입
  * @param icon       장치 아이콘
@@ -47,36 +53,92 @@ data class DeviceStatusItem(
 )
 
 /**
- * 홈화면 "장치 상태" 섹션 카드
+ * 장치 상태 카드
  *
- * Jetson Nano·카메라·마이크의 현재 연결 상태를 리스트 형태로 보여준다.
- *
- * @param devices  표시할 장치 상태 목록
+ * - [isDarkTheme] = false(기본): 라이트 테마 — 하나의 Card 안에 모든 장치 나열
+ * - [isDarkTheme] = true: 다크 테마 — 홈화면 알림 카드와 동일한 스타일로 장치별 개별 행 렌더링
  */
 @Composable
 fun DeviceStatusCard(
     devices: List<DeviceStatusItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Dimens.radiusCard),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
+    if (isDarkTheme) {
         Column(
-            modifier = Modifier.padding(Dimens.spaceXl),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             devices.forEach { device ->
-                DeviceStatusRow(item = device)
+                DeviceStatusRowDark(item = device)
+            }
+        }
+    } else {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(Dimens.radiusCard),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimens.spaceXl),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+            ) {
+                devices.forEach { device ->
+                    DeviceStatusRowLight(item = device)
+                }
             }
         }
     }
 }
 
+// ─── 다크 테마 행 (홈화면 알림 카드와 동일한 스타일) ──────────────────────────
+
 @Composable
-private fun DeviceStatusRow(item: DeviceStatusItem) {
+private fun DeviceStatusRowDark(item: DeviceStatusItem) {
+    val colors = SeverityColors.of(item.statusType)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(DarkSurface)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(colors.iconBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.label,
+                tint = colors.content,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Text(
+            text = item.label,
+            fontFamily = NanumSquareRound,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+            color = DarkOnSurface,
+            modifier = Modifier.weight(1f)
+        )
+
+        DeviceStatusBadge(text = item.statusText, colors = colors)
+    }
+}
+
+// ─── 라이트 테마 행 ────────────────────────────────────────────────────────────
+
+@Composable
+private fun DeviceStatusRowLight(item: DeviceStatusItem) {
     val colors = SeverityColors.of(item.statusType)
 
     Row(
@@ -108,12 +170,14 @@ private fun DeviceStatusRow(item: DeviceStatusItem) {
             )
         }
 
-        StatusBadge(text = item.statusText, colors = colors)
+        DeviceStatusBadge(text = item.statusText, colors = colors)
     }
 }
 
+// ─── 공통 상태 배지 ────────────────────────────────────────────────────────────
+
 @Composable
-private fun StatusBadge(text: String, colors: SeverityColors) {
+private fun DeviceStatusBadge(text: String, colors: SeverityColors) {
     Box(
         modifier = Modifier
             .background(color = colors.container, shape = RoundedCornerShape(Dimens.radiusS))
