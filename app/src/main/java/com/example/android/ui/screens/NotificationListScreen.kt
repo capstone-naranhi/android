@@ -1,6 +1,7 @@
 package com.example.android.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -107,7 +108,13 @@ private val sampleNotifications = listOf(
 // ─── 화면 ─────────────────────────────────────────────────────────────────────
 
 @Composable
-fun NotificationListScreen() {
+fun NotificationListScreen(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToLive: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToMyPage: () -> Unit = {},
+    onNotificationClick: (NotificationItem) -> Unit = {}
+) {
     var selectedFilter by remember { mutableStateOf(NotificationFilter.ALL) }
 
     val all = sampleNotifications
@@ -131,9 +138,15 @@ fun NotificationListScreen() {
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                selectedItem              = BottomNavigationItemType.NOTIFICATIONS,
-                onItemSelected            = {},
-                unreadNotificationCount   = unreadCount
+                selectedItem = BottomNavigationItemType.NOTIFICATIONS,
+                onItemSelected = { item ->
+                    when (item) {
+                        BottomNavigationItemType.HOME -> onNavigateToHome()
+                        BottomNavigationItemType.LIVE -> onNavigateToLive()
+                        else -> {}
+                    }
+                },
+                unreadNotificationCount = unreadCount
             )
         },
         containerColor = AppBackground
@@ -147,6 +160,8 @@ fun NotificationListScreen() {
             HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
             NotificationTitleRow(
+                onSettingsClick = onNavigateToSettings,
+                onProfileClick  = onNavigateToMyPage,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
             )
 
@@ -166,7 +181,10 @@ fun NotificationListScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredItems, key = { it.id }) { notification ->
-                    NotificationCard(notification = notification)
+                    NotificationCard(
+                        notification = notification,
+                        onClick = { onNotificationClick(notification) }
+                    )
                 }
             }
         }
@@ -176,7 +194,11 @@ fun NotificationListScreen() {
 // ─── 타이틀 행 ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun NotificationTitleRow(modifier: Modifier = Modifier) {
+private fun NotificationTitleRow(
+    onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -190,8 +212,8 @@ private fun NotificationTitleRow(modifier: Modifier = Modifier) {
             color = NeutralText
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconCircleButton(icon = Icons.Outlined.Settings, contentDescription = "설정")
-            IconCircleButton(icon = Icons.Default.Person, contentDescription = "프로필")
+            IconCircleButton(icon = Icons.Outlined.Settings, contentDescription = "설정", onClick = onSettingsClick)
+            IconCircleButton(icon = Icons.Default.Person, contentDescription = "프로필", onClick = onProfileClick)
         }
     }
 }
@@ -199,13 +221,15 @@ private fun NotificationTitleRow(modifier: Modifier = Modifier) {
 @Composable
 private fun IconCircleButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String
+    contentDescription: String,
+    onClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(NeutralSurface),
+            .background(NeutralSurface)
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(

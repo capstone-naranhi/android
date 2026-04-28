@@ -4,8 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.core.view.WindowCompat
-import com.example.android.ui.screens.HomeScreen
 import com.example.android.ui.theme.AndroidTheme
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AndroidTheme {
-                HomeScreen()
+                AppNavigation()
             }
         }
     }

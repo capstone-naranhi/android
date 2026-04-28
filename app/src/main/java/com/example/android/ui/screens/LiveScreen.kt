@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,7 +67,12 @@ private val sampleActivities = listOf(
 
 /** 실시간 모니터링 화면 */
 @Composable
-fun LiveScreen() {
+fun LiveScreen(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToMyPage: () -> Unit = {}
+) {
     var showInfoCard by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(400)
@@ -77,7 +83,13 @@ fun LiveScreen() {
         bottomBar = {
             BottomNavigationBar(
                 selectedItem = BottomNavigationItemType.LIVE,
-                onItemSelected = {}
+                onItemSelected = { item ->
+                    when (item) {
+                        BottomNavigationItemType.HOME          -> onNavigateToHome()
+                        BottomNavigationItemType.NOTIFICATIONS -> onNavigateToNotifications()
+                        else -> {}
+                    }
+                }
             )
         },
         containerColor = AppBackground
@@ -91,7 +103,11 @@ fun LiveScreen() {
                 Spacer(modifier = Modifier.statusBarsPadding())
                 HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
-                LiveTitleRow(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp))
+                LiveTitleRow(
+                    onSettingsClick = onNavigateToSettings,
+                    onProfileClick = onNavigateToMyPage,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                )
 
                 HorizontalDivider(
                     color = NeutralSurface,
@@ -135,7 +151,11 @@ fun LiveScreen() {
 // ─── Title row ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LiveTitleRow(modifier: Modifier = Modifier) {
+private fun LiveTitleRow(
+    onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -174,7 +194,8 @@ private fun LiveTitleRow(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(NeutralSurface),
+                    .background(NeutralSurface)
+                    .clickable { onSettingsClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -188,7 +209,8 @@ private fun LiveTitleRow(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(NeutralSurface),
+                    .background(NeutralSurface)
+                    .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.HorizontalDivider
@@ -58,13 +57,17 @@ private data class SettingsRow(
     val title: String,
     val subtitle: String,
     val badge: String? = null,
-    val badgeColor: Color = DangerContent
+    val badgeColor: Color = DangerContent,
+    val onClick: () -> Unit = {}
 )
 
 // ─── 화면 ─────────────────────────────────────────────────────────────────────
 
 @Composable
-fun MyPageScreen(onBack: () -> Unit = {}) {
+fun MyPageScreen(
+    onBack: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
+) {
     Scaffold(containerColor = AppBackground) { innerPadding ->
         Column(
             modifier = Modifier
@@ -110,7 +113,7 @@ fun MyPageScreen(onBack: () -> Unit = {}) {
                                 icon = Icons.Outlined.Videocam,
                                 iconBg = NeutralSurface,
                                 iconTint = NeutralSubText,
-                                title = "연결된 카메라",
+                                title = "연결된 디바이스",
                                 subtitle = "1대 등록 · 1대 연결 중",
                                 badge = "모두 1",
                                 badgeColor = DangerContent
@@ -120,7 +123,8 @@ fun MyPageScreen(onBack: () -> Unit = {}) {
                                 iconBg = NeutralSurface,
                                 iconTint = NeutralSubText,
                                 title = "알림 설정",
-                                subtitle = "알림 유형 · 방해금지 시간"
+                                subtitle = "알림 유형 · 방해금지 시간",
+                                onClick = onNavigateToSettings
                             )
                         )
                     )
@@ -179,33 +183,14 @@ fun MyPageScreen(onBack: () -> Unit = {}) {
 
 @Composable
 private fun MyPageTitleRow(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "마이페이지",
-            fontFamily = NanumSquareRound,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 20.sp,
-            color = NeutralText
-        )
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(NeutralSurface),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "프로필",
-                tint = NeutralSubText,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
+    Text(
+        text = "마이페이지",
+        fontFamily = NanumSquareRound,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 20.sp,
+        color = NeutralText,
+        modifier = modifier.fillMaxWidth()
+    )
 }
 
 // ─── 프로필 카드 ──────────────────────────────────────────────────────────────
@@ -349,7 +334,7 @@ private fun SettingsRowItem(row: SettingsRow, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable {}
+            .clickable { row.onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)

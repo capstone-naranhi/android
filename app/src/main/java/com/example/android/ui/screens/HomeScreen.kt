@@ -122,7 +122,14 @@ private val sampleDevices = listOf(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToMyPage: () -> Unit = {},
+    onNavigateToLive: () -> Unit = {},
+    onNavigateToNotificationList: () -> Unit = {},
+    onNavigateToSafetyDetail: (String) -> Unit = {},
+    onNavigateToDeviceDetail: () -> Unit = {}
+) {
     // 현재 아이의 실제 상태에 따라 결정되는 값 (탭으로 전환하는 UI 없음)
     val currentLevel = SafetyLevel.SAFE
 
@@ -130,7 +137,13 @@ fun HomeScreen() {
         bottomBar = {
             BottomNavigationBar(
                 selectedItem = BottomNavigationItemType.HOME,
-                onItemSelected = {},
+                onItemSelected = { item ->
+                    when (item) {
+                        BottomNavigationItemType.LIVE          -> onNavigateToLive()
+                        BottomNavigationItemType.NOTIFICATIONS -> onNavigateToNotificationList()
+                        else -> {}
+                    }
+                },
                 unreadNotificationCount = 1
             )
         },
@@ -146,6 +159,8 @@ fun HomeScreen() {
 
             GreetingRow(
                 name = "지민맘",
+                onSettingsClick = onNavigateToSettings,
+                onProfileClick = onNavigateToMyPage,
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .padding(top = 16.dp, bottom = 16.dp)
@@ -168,11 +183,18 @@ fun HomeScreen() {
                 item {
                     LivePreviewCard(
                         mainRoom = "아기방",
-                        rooms = sampleRooms
+                        rooms = sampleRooms,
+                        onClick = onNavigateToLive
                     )
                 }
-                item { RecentAlertsSection(alerts = sampleAlerts, onViewAll = {}) }
-                item { DeviceStatusSection(devices = sampleDevices, onViewAll = {}) }
+                item {
+                    RecentAlertsSection(
+                        alerts = sampleAlerts,
+                        onViewAll = onNavigateToNotificationList,
+                        onAlertClick = { alert -> onNavigateToSafetyDetail(alert.id) }
+                    )
+                }
+                item { DeviceStatusSection(devices = sampleDevices, onViewAll = onNavigateToDeviceDetail) }
             }
         }
     }
@@ -181,7 +203,12 @@ fun HomeScreen() {
 // ─── Greeting row ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun GreetingRow(name: String, modifier: Modifier = Modifier) {
+private fun GreetingRow(
+    name: String,
+    onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -199,7 +226,8 @@ private fun GreetingRow(name: String, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(NeutralSurface),
+                    .background(NeutralSurface)
+                    .clickable { onSettingsClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -213,7 +241,8 @@ private fun GreetingRow(name: String, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(NeutralSurface),
+                    .background(NeutralSurface)
+                    .clickable { onProfileClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -480,6 +509,7 @@ private fun StatCard(number: String, label: String, modifier: Modifier = Modifie
 private fun LivePreviewCard(
     mainRoom: String,
     rooms: List<CameraRoom>,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -487,6 +517,7 @@ private fun LivePreviewCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
+            .clickable { onClick() }
             .padding(horizontal = 20.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -607,6 +638,7 @@ private fun DeviceStatusSection(
 private fun RecentAlertsSection(
     alerts: List<HomeAlert>,
     onViewAll: () -> Unit,
+    onAlertClick: (HomeAlert) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -645,12 +677,14 @@ private fun RecentAlertsSection(
                 )
             }
         }
-        alerts.forEach { alert -> HomeAlertCard(alert) }
+        alerts.forEach { alert ->
+            HomeAlertCard(alert = alert, onClick = { onAlertClick(alert) })
+        }
     }
 }
 
 @Composable
-private fun HomeAlertCard(alert: HomeAlert) {
+private fun HomeAlertCard(alert: HomeAlert, onClick: () -> Unit = {}) {
     val iconBg: Color
     val iconTint: Color
     val badgeBg: Color
@@ -678,6 +712,7 @@ private fun HomeAlertCard(alert: HomeAlert) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
+            .clickable { onClick() }
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)

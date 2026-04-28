@@ -65,7 +65,12 @@ import com.example.android.ui.theme.SuccessContent
 // ─── 화면 ─────────────────────────────────────────────────────────────────────
 
 @Composable
-fun SettingScreen(onBack: () -> Unit = {}) {
+fun SettingScreen(
+    onBack: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToLive: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {}
+) {
     var deviceAlertOn by remember { mutableStateOf(true) }
     var reportAlertOn by remember { mutableStateOf(true) }
     var adAlertOn     by remember { mutableStateOf(false) }
@@ -76,7 +81,13 @@ fun SettingScreen(onBack: () -> Unit = {}) {
         bottomBar = {
             BottomNavigationBar(
                 selectedItem = BottomNavigationItemType.NOTIFICATIONS,
-                onItemSelected = {}
+                onItemSelected = { item ->
+                    when (item) {
+                        BottomNavigationItemType.HOME          -> onNavigateToHome()
+                        BottomNavigationItemType.LIVE          -> onNavigateToLive()
+                        BottomNavigationItemType.NOTIFICATIONS -> onNavigateToNotifications()
+                    }
+                }
             )
         }
     ) { innerPadding ->
