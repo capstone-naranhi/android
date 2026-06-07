@@ -21,34 +21,52 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SentimentVeryDissatisfied
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.android.data.model.ChildStatus
+import com.example.android.data.model.DeviceOnlineStatus
+import com.example.android.data.model.HomeData
+import com.example.android.data.model.HomeDeviceStatusPreview
+import com.example.android.data.model.HomeNotificationItem
+import com.example.android.data.model.toTimeAgoText
+import com.example.android.data.network.SessionManager
 import com.example.android.ui.components.BottomNavigationBar
 import com.example.android.ui.components.BottomNavigationItemType
 import com.example.android.ui.components.DeviceStatusCard
 import com.example.android.ui.components.DeviceStatusItem
 import com.example.android.ui.theme.AndroidTheme
 import com.example.android.ui.theme.AppBackground
+import com.example.android.ui.theme.BrandPrimary
 import com.example.android.ui.theme.CautionCardAccent
 import com.example.android.ui.theme.CautionCardBg
 import com.example.android.ui.theme.CautionChipBg
+import com.example.android.ui.theme.InfoContainer
+import com.example.android.ui.theme.InfoContent
+import com.example.android.ui.theme.InfoIconBg
 import com.example.android.ui.theme.DangerCardAccent
 import com.example.android.ui.theme.DangerCardBg
 import com.example.android.ui.theme.DangerChipBg
@@ -68,9 +86,9 @@ import com.example.android.ui.theme.WarningContainer
 import com.example.android.ui.theme.WarningContent
 import com.example.android.ui.theme.WarningIconBg
 
-// ─── Local data models ────────────────────────────────────────────────────────
+// ─── Local UI models ──────────────────────────────────────────────────────────
 
-private enum class SafetyLevel { SAFE, CAUTION, DANGER }
+private enum class SafetyLevel { SAFE, INFO, CAUTION, DANGER }
 
 private data class MetricData(val label: String, val value: String)
 
@@ -84,7 +102,60 @@ private data class HomeAlert(
     val timeText: String
 )
 
-// ─── Sample data ──────────────────────────────────────────────────────────────
+// ─── API 데이터 → UI 모델 변환 ──────────────────────────────────────────────────
+
+private fun ChildStatus?.toSafetyLevel() = when (this) {
+    ChildStatus.DANGER     -> SafetyLevel.DANGER
+    ChildStatus.CAUTION    -> SafetyLevel.CAUTION
+    ChildStatus.INFO       -> SafetyLevel.INFO
+    ChildStatus.SAFE, null -> SafetyLevel.SAFE
+}
+
+private fun HomeNotificationItem.toHomeAlert(): HomeAlert {
+    val level = when (safetyDetail?.severity) {
+        "DANGER"  -> SafetyLevel.DANGER
+        "CAUTION" -> SafetyLevel.CAUTION
+        "INFO"    -> SafetyLevel.INFO
+        else      -> if (type == "DEVICE") SafetyLevel.CAUTION else SafetyLevel.SAFE
+    }
+    val title = safetyDetail?.eventType?.label
+        ?: deviceDetail?.let { "${it.componentType ?: "장치"} 상태 변경" }
+        ?: generalDetail?.title
+        ?: "알림"
+    val room = safetyDetail?.deviceName
+        ?: deviceDetail?.deviceName
+        ?: ""
+    return HomeAlert(
+        id = notificationId.toString(),
+        level = level,
+        title = title,
+        room = room,
+        timeText = sentAt.toTimeAgoText()
+    )
+}
+
+private fun HomeDeviceStatusPreview.toDeviceStatusItems(): List<DeviceStatusItem> = listOf(
+    DeviceStatusItem(
+        label = "보드",
+        statusText = if (boardStatus == DeviceOnlineStatus.ONLINE) "연결됨" else "연결 끊김",
+        statusType = if (boardStatus == DeviceOnlineStatus.ONLINE) StatusType.SUCCESS else StatusType.DANGER,
+        icon = Icons.Outlined.Memory
+    ),
+    DeviceStatusItem(
+        label = "카메라",
+        statusText = if (cameraStatus == DeviceOnlineStatus.ONLINE) "연결됨" else "연결 끊김",
+        statusType = if (cameraStatus == DeviceOnlineStatus.ONLINE) StatusType.SUCCESS else StatusType.DANGER,
+        icon = Icons.Outlined.Videocam
+    ),
+    DeviceStatusItem(
+        label = "마이크",
+        statusText = if (micStatus == DeviceOnlineStatus.ONLINE) "연결됨" else "연결 끊김",
+        statusType = if (micStatus == DeviceOnlineStatus.ONLINE) StatusType.SUCCESS else StatusType.DANGER,
+        icon = Icons.Outlined.Mic
+    )
+)
+
+// ─── Fallback sample data (로딩 중 / 기기 없을 때) ───────────────────────────────
 
 private fun safeMetrics() = listOf(
     MetricData("호흡", "정상"),
@@ -95,28 +166,19 @@ private fun safeMetrics() = listOf(
 private fun cautionMetrics() = listOf(
     MetricData("호흡", "정상"),
     MetricData("움직임", "활발"),
-    MetricData("울음", "3분 지속")
+    MetricData("울음", "감지됨")
+)
+
+private fun infoMetrics() = listOf(
+    MetricData("호흡", "정상"),
+    MetricData("움직임", "정상"),
+    MetricData("알림", "확인 필요")
 )
 
 private fun dangerMetrics() = listOf(
     MetricData("호흡", "불규칙"),
     MetricData("움직임", "감지됨"),
-    MetricData("위험", "질식")
-)
-
-private val sampleRooms = listOf(
-    CameraRoom("아기방", true)
-)
-
-private val sampleAlerts = listOf(
-    HomeAlert("1", SafetyLevel.DANGER, "질식 위험 감지됨", "아기방 카메라", "방금"),
-    HomeAlert("2", SafetyLevel.CAUTION, "울음 감지됨", "아기방 카메라", "14분 전")
-)
-
-private val sampleDevices = listOf(
-    DeviceStatusItem("보드", "연결됨", StatusType.SUCCESS, Icons.Outlined.Memory),
-    DeviceStatusItem("카메라", "연결됨", StatusType.SUCCESS, Icons.Outlined.Videocam),
-    DeviceStatusItem("마이크", "연결됨", StatusType.SUCCESS, Icons.Outlined.Mic)
+    MetricData("위험", "감지됨")
 )
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -128,13 +190,16 @@ fun HomeScreen(
     onNavigateToLive: () -> Unit = {},
     onNavigateToNotificationList: () -> Unit = {},
     onNavigateToSafetyDetail: (String) -> Unit = {},
-    onNavigateToDeviceDetail: () -> Unit = {}
+    onNavigateToDeviceDetail: () -> Unit = {},
+    viewModel: HomeViewModel = viewModel()
 ) {
-    // 현재 아이의 실제 상태에 따라 결정되는 값 (탭으로 전환하는 UI 없음)
-    val currentLevel = SafetyLevel.SAFE
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = {
+            val unreadCount = if (uiState is HomeUiState.Success) {
+                (uiState as HomeUiState.Success).data.todaySummary.todayNotificationCount.toInt()
+            } else 0
             BottomNavigationBar(
                 selectedItem = BottomNavigationItemType.HOME,
                 onItemSelected = { item ->
@@ -144,7 +209,7 @@ fun HomeScreen(
                         else -> {}
                     }
                 },
-                unreadNotificationCount = 1
+                unreadNotificationCount = unreadCount
             )
         },
         containerColor = AppBackground
@@ -158,7 +223,7 @@ fun HomeScreen(
             HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
             GreetingRow(
-                name = "지민맘",
+                name = SessionManager.displayName ?: "사용자",
                 onSettingsClick = onNavigateToSettings,
                 onProfileClick = onNavigateToMyPage,
                 modifier = Modifier
@@ -166,35 +231,138 @@ fun HomeScreen(
                     .padding(top = 16.dp, bottom = 16.dp)
             )
 
-            HorizontalDivider(
-                color = NeutralSurface,
-                thickness = 1.dp
-            )
+            HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 20.dp, end = 20.dp,
-                    top = 20.dp, bottom = 32.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+            when (val state = uiState) {
+                is HomeUiState.Loading -> HomeLoadingState()
+                is HomeUiState.Error   -> HomeErrorState(
+                    message = state.message,
+                    onRetry = { viewModel.refresh() }
+                )
+                is HomeUiState.Success -> HomeContent(
+                    data = state.data,
+                    onNavigateToLive = onNavigateToLive,
+                    onNavigateToNotificationList = onNavigateToNotificationList,
+                    onNavigateToSafetyDetail = onNavigateToSafetyDetail,
+                    onNavigateToDeviceDetail = onNavigateToDeviceDetail
+                )
+            }
+        }
+    }
+}
+
+// ─── Loading / Error ──────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeLoadingState() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = BrandPrimary)
+    }
+}
+
+@Composable
+private fun HomeErrorState(message: String, onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = message,
+                fontFamily = NanumSquareRound,
+                fontWeight = FontWeight.Normal,
+                fontSize = 14.sp,
+                color = NeutralSubText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+            OutlinedButton(
+                onClick = onRetry,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandPrimary)
             ) {
-                item { SafetyStatusCard(level = currentLevel) }
-                item { StatsRow(todayAlerts = 2, todayCrying = 5) }
-                item {
-                    LivePreviewCard(
-                        mainRoom = "아기방",
-                        rooms = sampleRooms,
-                        onClick = onNavigateToLive
-                    )
-                }
-                item {
-                    RecentAlertsSection(
-                        alerts = sampleAlerts,
-                        onViewAll = onNavigateToNotificationList,
-                        onAlertClick = { alert -> onNavigateToSafetyDetail(alert.id) }
-                    )
-                }
-                item { DeviceStatusSection(devices = sampleDevices, onViewAll = onNavigateToDeviceDetail) }
+                Icon(
+                    imageVector = Icons.Outlined.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(
+                    text = "다시 시도",
+                    fontFamily = NanumSquareRound,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
+
+// ─── Content ──────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeContent(
+    data: HomeData,
+    onNavigateToLive: () -> Unit,
+    onNavigateToNotificationList: () -> Unit,
+    onNavigateToSafetyDetail: (String) -> Unit,
+    onNavigateToDeviceDetail: () -> Unit
+) {
+    val currentLevel = data.currentStatus.childStatus.toSafetyLevel()
+    val timeLabel = data.currentStatus.evaluatedAt.toTimeAgoText()
+
+    val rooms = data.devices.map { device ->
+        val status = data.deviceStatuses.find { it.deviceId == device.deviceId }
+        CameraRoom(
+            name = device.deviceName,
+            isConnected = status?.cameraStatus == DeviceOnlineStatus.ONLINE
+        )
+    }
+
+    val alerts = data.recentNotifications.map { it.toHomeAlert() }
+
+    val deviceStatusItems = data.deviceStatuses.flatMap { it.toDeviceStatusItems() }
+
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = 20.dp, end = 20.dp,
+            top = 20.dp, bottom = 32.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        item { SafetyStatusCard(level = currentLevel, timeLabel = timeLabel) }
+        item {
+            StatsRow(
+                todayAlerts = data.todaySummary.todayNotificationCount.toInt(),
+                todayCrying = data.todaySummary.todayCryingCount.toInt()
+            )
+        }
+        item {
+            LivePreviewCard(
+                mainRoom = rooms.firstOrNull()?.name ?: "기기 없음",
+                rooms = rooms.ifEmpty { listOf(CameraRoom("기기 없음", false)) },
+                onClick = onNavigateToLive
+            )
+        }
+        item {
+            RecentAlertsSection(
+                alerts = alerts,
+                onViewAll = onNavigateToNotificationList,
+                onAlertClick = { alert -> onNavigateToSafetyDetail(alert.id) }
+            )
+        }
+        if (deviceStatusItems.isNotEmpty()) {
+            item {
+                DeviceStatusSection(
+                    devices = deviceStatusItems,
+                    onViewAll = onNavigateToDeviceDetail
+                )
             }
         }
     }
@@ -269,16 +437,27 @@ private data class StatusCardStyle(
     val metrics: List<MetricData>
 )
 
-private fun styleForLevel(level: SafetyLevel) = when (level) {
+private fun styleForLevel(level: SafetyLevel, timeLabel: String) = when (level) {
     SafetyLevel.SAFE -> StatusCardStyle(
         cardBg = SafeCardBg,
         accent = SafeCardAccent,
         chipBg = SafeChipBg,
         badgeLabel = "안전",
-        timeLabel = "방금 확인됨",
+        timeLabel = timeLabel,
         mainText = "아이가 안전해요",
         subText = "정상적인 호흡과 움직임이 감지되고 있어요",
         metrics = safeMetrics()
+    )
+
+    SafetyLevel.INFO -> StatusCardStyle(
+        cardBg = InfoContainer,
+        accent = InfoContent,
+        chipBg = InfoIconBg,
+        badgeLabel = "정보",
+        timeLabel = timeLabel,
+        mainText = "확인이 필요한 알림이 있어요",
+        subText = "아이 상태를 확인해 보세요",
+        metrics = infoMetrics()
     )
 
     SafetyLevel.CAUTION -> StatusCardStyle(
@@ -286,9 +465,9 @@ private fun styleForLevel(level: SafetyLevel) = when (level) {
         accent = CautionCardAccent,
         chipBg = CautionChipBg,
         badgeLabel = "주의",
-        timeLabel = "3분 전 감지됨",
-        mainText = "울음이 감지됐어요",
-        subText = "3분 이상 울음이 지속되고 있어요",
+        timeLabel = timeLabel,
+        mainText = "이상 징후가 감지됐어요",
+        subText = "아이 상태를 주의 깊게 살펴보세요",
         metrics = cautionMetrics()
     )
 
@@ -297,16 +476,20 @@ private fun styleForLevel(level: SafetyLevel) = when (level) {
         accent = DangerCardAccent,
         chipBg = DangerChipBg,
         badgeLabel = "위험",
-        timeLabel = "방금 감지됨",
+        timeLabel = timeLabel,
         mainText = "즉시 확인이 필요해요",
-        subText = "질식 위험이 감지됐어요. 지금 바로 확인해주세요",
+        subText = "위험 상황이 감지됐어요. 지금 바로 확인해주세요",
         metrics = dangerMetrics()
     )
 }
 
 @Composable
-private fun SafetyStatusCard(level: SafetyLevel, modifier: Modifier = Modifier) {
-    val s = styleForLevel(level)
+private fun SafetyStatusCard(
+    level: SafetyLevel,
+    timeLabel: String = "방금 확인됨",
+    modifier: Modifier = Modifier
+) {
+    val s = styleForLevel(level, timeLabel)
 
     Column(
         modifier = modifier
@@ -316,7 +499,6 @@ private fun SafetyStatusCard(level: SafetyLevel, modifier: Modifier = Modifier) 
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Badge + time
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -332,7 +514,6 @@ private fun SafetyStatusCard(level: SafetyLevel, modifier: Modifier = Modifier) 
             )
         }
 
-        // Circle indicator + text
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -369,7 +550,6 @@ private fun SafetyStatusCard(level: SafetyLevel, modifier: Modifier = Modifier) 
             }
         }
 
-        // Metric chips
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -385,7 +565,6 @@ private fun SafetyStatusCard(level: SafetyLevel, modifier: Modifier = Modifier) 
             }
         }
 
-        // Danger CTA
         if (level == SafetyLevel.DANGER) {
             OutlinedButton(
                 onClick = {},
@@ -677,8 +856,19 @@ private fun RecentAlertsSection(
                 )
             }
         }
-        alerts.forEach { alert ->
-            HomeAlertCard(alert = alert, onClick = { onAlertClick(alert) })
+        if (alerts.isEmpty()) {
+            Text(
+                text = "최근 알림이 없습니다.",
+                fontFamily = NanumSquareRound,
+                fontWeight = FontWeight.Normal,
+                fontSize = 14.sp,
+                color = NeutralSubText,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            alerts.forEach { alert ->
+                HomeAlertCard(alert = alert, onClick = { onAlertClick(alert) })
+            }
         }
     }
 }
@@ -699,6 +889,11 @@ private fun HomeAlertCard(alert: HomeAlert, onClick: () -> Unit = {}) {
         SafetyLevel.CAUTION -> {
             iconBg = WarningIconBg; iconTint = WarningContent
             badgeBg = WarningContainer; badgeText = "주의"
+        }
+
+        SafetyLevel.INFO -> {
+            iconBg = InfoIconBg; iconTint = InfoContent
+            badgeBg = InfoContainer; badgeText = "정보"
         }
 
         SafetyLevel.SAFE -> {
@@ -725,10 +920,11 @@ private fun HomeAlertCard(alert: HomeAlert, onClick: () -> Unit = {}) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (alert.level == SafetyLevel.DANGER)
-                    Icons.Outlined.Warning
-                else
-                    Icons.Outlined.SentimentVeryDissatisfied,
+                imageVector = when (alert.level) {
+                    SafetyLevel.DANGER  -> Icons.Outlined.Warning
+                    SafetyLevel.INFO    -> Icons.Outlined.Info
+                    else                -> Icons.Outlined.SentimentVeryDissatisfied
+                },
                 contentDescription = null,
                 tint = iconTint,
                 modifier = Modifier.size(24.dp)

@@ -1,5 +1,6 @@
 package com.example.android.data.network
 
+import com.example.android.data.model.HomeData
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -20,7 +21,7 @@ data class ErrorDto(
     val message: String
 )
 
-// ─── 응답 모델 ──────────────────────────────────────────────────────────────────
+// ─── 로그인 응답 모델 ────────────────────────────────────────────────────────────
 
 /** 로그인 성공 시 서버가 반환하는 세션 사용자 정보 */
 data class SessionUser(
@@ -74,6 +75,13 @@ interface ApiService {
      */
     @GET("api/v1/auth/me")
     suspend fun getMyInfo(): Response<ApiResponse<MyInfo>>
+
+    /**
+     * 홈 화면 데이터 조회.
+     * - 현재 안전 상태, 오늘 요약, 기기 목록, 최근 알림, 기기 상태 반환
+     */
+    @GET("api/v1/home")
+    suspend fun getHome(): Response<ApiResponse<HomeData>>
 
     /**
      * FCM 토큰 등록: 로그인 직후 호출하여 푸시 알림을 받을 수 있도록 합니다.

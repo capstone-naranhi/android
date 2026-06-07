@@ -29,6 +29,8 @@ class SessionRepository {
         if (body?.success != true || body.data == null) {
             error(body?.error?.message ?: "로그인 중 오류가 발생했습니다.")
         }
+        // 사용자 표시 이름 저장 (닉네임 우선)
+        SessionManager.displayName = body.data.nickname.ifBlank { body.data.name }
         // FCM 토큰 등록 (실패해도 로그인 자체는 성공 처리)
         registerFcmToken()
         body.data

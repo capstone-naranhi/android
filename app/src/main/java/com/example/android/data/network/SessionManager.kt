@@ -26,8 +26,12 @@ object SessionManager {
     val hasValidSession: Boolean
         get() = cookieJar.hasJSessionId(NetworkConfig.host)
 
-    /** 로그아웃: 저장된 모든 쿠키를 삭제합니다. */
+    /** 로그인 성공 후 저장되는 사용자 표시 이름 (닉네임 우선, 없으면 이름) */
+    var displayName: String? = null
+
+    /** 로그아웃: 저장된 모든 쿠키와 사용자 정보를 삭제합니다. */
     fun clearSession() {
         cookieJar.clearAll()
+        displayName = null
     }
 }
