@@ -1,8 +1,10 @@
 package com.example.android
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.activity.compose.LocalActivity
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,6 +13,11 @@ import androidx.navigation.navArgument
 import com.example.android.data.model.NotificationCategory
 import com.example.android.data.network.SessionManager
 import com.example.android.data.network.SessionRepository
+import com.example.android.fcm.IbomMessagingService.Companion.EXTRA_NOTIF_ID
+import com.example.android.fcm.IbomMessagingService.Companion.EXTRA_SCREEN
+import com.example.android.fcm.IbomMessagingService.Companion.EXTRA_TYPE
+import com.example.android.fcm.IbomMessagingService.Companion.TYPE_DEVICE
+import com.example.android.fcm.IbomMessagingService.Companion.TYPE_SAFETY
 import com.example.android.ui.screens.DeviceDetailScreen
 import com.example.android.ui.screens.DeviceNotificationDetailScreen
 import com.example.android.ui.screens.HomeScreen
@@ -58,6 +65,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val sessionRepository = remember { SessionRepository() }
+    val activity = LocalActivity.current as MainActivity
 
     /**
      * 앱 시작 시 JSESSIONID 쿠키 존재 여부로 시작 화면을 결정합니다.
@@ -65,6 +73,30 @@ fun AppNavigation() {
      *  - 쿠키 없음 → LOGIN
      */
     val startDestination = if (SessionManager.hasValidSession) Routes.HOME else Routes.LOGIN
+
+    // FCM 알림 탭 딥링크 처리
+    LaunchedEffect(activity.pendingFcmIntent) {
+        val intent = activity.pendingFcmIntent ?: return@LaunchedEffect
+        // 세션 없으면 딥링크 무시 (로그인 화면 유지)
+        if (!SessionManager.hasValidSession) {
+            activity.consumeFcmIntent()
+            return@LaunchedEffect
+        }
+        val type    = intent.getStringExtra(EXTRA_TYPE)    ?: return@LaunchedEffect
+        val notifId = intent.getStringExtra(EXTRA_NOTIF_ID) ?: ""
+        activity.consumeFcmIntent()
+
+        when (type) {
+            TYPE_SAFETY -> navController.navigate(Routes.safetyDetailRoute(notifId)) {
+                popUpTo(Routes.HOME) { saveState = true }
+                launchSingleTop = true
+            }
+            TYPE_DEVICE -> navController.navigate(Routes.DEVICE_DETAIL) {
+                popUpTo(Routes.HOME) { saveState = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     val onLogout: () -> Unit = {
         scope.launch {
