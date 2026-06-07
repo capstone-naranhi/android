@@ -1,0 +1,83 @@
+package com.example.android.data.network
+
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
+import retrofit2.http.POST
+
+// ─── 공통 응답 래퍼 ─────────────────────────────────────────────────────────────
+
+data class ApiResponse<T>(
+    val success: Boolean,
+    val data: T?,
+    val error: ErrorDto?
+)
+
+data class ErrorDto(
+    val code: String,
+    val message: String
+)
+
+// ─── 응답 모델 ──────────────────────────────────────────────────────────────────
+
+/** 로그인 성공 시 서버가 반환하는 세션 사용자 정보 */
+data class SessionUser(
+    val id: Long,
+    val name: String,
+    val nickname: String,
+    val email: String,
+    val role: String
+)
+
+/** GET /api/v1/auth/me 응답 */
+data class MyInfo(
+    val id: Long,
+    val name: String,
+    val email: String
+)
+
+// ─── 요청 모델 ──────────────────────────────────────────────────────────────────
+
+data class FcmTokenRequest(
+    val fcmToken: String
+)
+
+// ─── Retrofit 인터페이스 ────────────────────────────────────────────────────────
+
+interface ApiService {
+
+    /**
+     * 로그인: Spring Security formLogin 처리.
+     * - Content-Type: application/x-www-form-urlencoded
+     * - 파라미터명: email, password (SecurityConfig.usernameParameter("email") 기준)
+     * - 성공 시 응답 헤더에 Set-Cookie: JSESSIONID 포함
+     */
+    @FormUrlEncoded
+    @POST("api/v1/auth/login")
+    suspend fun login(
+        @Field("email") email: String,
+        @Field("password") password: String
+    ): Response<ApiResponse<SessionUser>>
+
+    /**
+     * 로그아웃: Spring Security 자동 처리.
+     * - 서버 세션 무효화 + JSESSIONID 쿠키 삭제
+     */
+    @POST("api/v1/auth/logout")
+    suspend fun logout(): Response<ApiResponse<Unit>>
+
+    /**
+     * 내 정보 조회.
+     * - 세션 쿠키가 없으면 401 반환
+     */
+    @GET("api/v1/auth/me")
+    suspend fun getMyInfo(): Response<ApiResponse<MyInfo>>
+
+    /**
+     * FCM 토큰 등록: 로그인 직후 호출하여 푸시 알림을 받을 수 있도록 합니다.
+     */
+    @POST("api/v1/auth/fcm-token")
+    suspend fun registerFcmToken(@Body request: FcmTokenRequest): Response<ApiResponse<Unit>>
+}

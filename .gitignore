@@ -46,3 +46,6 @@ app/build/
 
 # Mac
 .DS_Store
+
+# Firebase
+/app/google-services.json

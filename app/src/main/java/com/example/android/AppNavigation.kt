@@ -1,23 +1,29 @@
 package com.example.android
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.android.data.model.NotificationCategory
+import com.example.android.data.network.SessionManager
+import com.example.android.data.network.SessionRepository
 import com.example.android.ui.screens.DeviceDetailScreen
 import com.example.android.ui.screens.DeviceNotificationDetailScreen
 import com.example.android.ui.screens.HomeScreen
 import com.example.android.ui.screens.LiveScreen
+import com.example.android.ui.screens.LoginScreen
 import com.example.android.ui.screens.MyPageScreen
 import com.example.android.ui.screens.NotificationListScreen
 import com.example.android.ui.screens.SafetyNotificationDetailScreen
 import com.example.android.ui.screens.SettingScreen
+import kotlinx.coroutines.launch
 
 object Routes {
+    const val LOGIN = "login"
     const val HOME = "home"
     const val SETTINGS = "settings"
     const val MY_PAGE = "my_page"
@@ -40,11 +46,44 @@ private fun navigateTab(navController: androidx.navigation.NavController, route:
     }
 }
 
+/** 로그인 화면으로 이동하며 백스택 전체를 초기화합니다. */
+private fun navigateToLogin(navController: androidx.navigation.NavController) {
+    navController.navigate(Routes.LOGIN) {
+        popUpTo(0) { inclusive = true }
+    }
+}
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+    val sessionRepository = remember { SessionRepository() }
 
-    NavHost(navController = navController, startDestination = Routes.HOME) {
+    /**
+     * 앱 시작 시 JSESSIONID 쿠키 존재 여부로 시작 화면을 결정합니다.
+     *  - 쿠키 있음 → HOME (세션 유지)
+     *  - 쿠키 없음 → LOGIN
+     */
+    val startDestination = if (SessionManager.hasValidSession) Routes.HOME else Routes.LOGIN
+
+    val onLogout: () -> Unit = {
+        scope.launch {
+            sessionRepository.logout()
+            navigateToLogin(navController)
+        }
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
+
+        composable(Routes.LOGIN) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
 
         composable(Routes.HOME) {
             HomeScreen(
@@ -59,7 +98,7 @@ fun AppNavigation() {
 
         composable(Routes.SETTINGS) {
             SettingScreen(
-                onBack                  = { navController.popBackStack() },
+                onBack                    = { navController.popBackStack() },
                 onNavigateToHome          = { navigateTab(navController, Routes.HOME) },
                 onNavigateToLive          = { navigateTab(navController, Routes.LIVE) },
                 onNavigateToNotifications = { navigateTab(navController, Routes.NOTIFICATIONS) }
@@ -69,7 +108,8 @@ fun AppNavigation() {
         composable(Routes.MY_PAGE) {
             MyPageScreen(
                 onBack               = { navController.popBackStack() },
-                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                onLogout             = onLogout
             )
         }
 
@@ -123,10 +163,4 @@ fun AppNavigation() {
             DeviceDetailScreen(onBack = { navController.popBackStack() })
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AppNavigationPreview() {
-    AppNavigation()
 }

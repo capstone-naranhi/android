@@ -66,7 +66,8 @@ private data class SettingsRow(
 @Composable
 fun MyPageScreen(
     onBack: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     Scaffold(containerColor = AppBackground) { innerPadding ->
         Column(
@@ -162,7 +163,7 @@ fun MyPageScreen(
 
                 // 로그아웃
                 item { Spacer(modifier = Modifier.height(8.dp)) }
-                item { LogoutButton(onClick = {}) }
+                item { LogoutButton(onClick = onLogout) }
                 item {
                     Text(
                         text = "v1.0.0",

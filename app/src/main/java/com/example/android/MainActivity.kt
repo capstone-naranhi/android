@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.example.android.data.network.SessionManager
 import com.example.android.ui.theme.AndroidTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 시스템 바 영역까지 앱이 자연스럽게 그려지도록 설정
+        // SharedPreferences 기반 쿠키 저장소 초기화 (AppNavigation보다 먼저 호출해야 함)
+        SessionManager.init(this)
         enableEdgeToEdge()
         setContent {
             AndroidTheme {
