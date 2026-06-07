@@ -1,6 +1,7 @@
 package com.example.android.data.network
 
 import android.content.Context
+import android.provider.Settings
 
 /**
  * 세션 상태를 전역으로 관리합니다.
@@ -15,8 +16,16 @@ object SessionManager {
     lateinit var cookieJar: PersistentCookieJar
         private set
 
+    /** ANDROID_ID — 기기 고유 식별자 (재설치해도 유지, 초기화 시 변경) */
+    var deviceId: String? = null
+        private set
+
     fun init(context: Context) {
         cookieJar = PersistentCookieJar(context.applicationContext)
+        deviceId = Settings.Secure.getString(
+            context.applicationContext.contentResolver,
+            Settings.Secure.ANDROID_ID
+        )
     }
 
     /**

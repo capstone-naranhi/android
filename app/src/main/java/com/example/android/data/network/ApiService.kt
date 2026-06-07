@@ -7,6 +7,7 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 
 // ─── 공통 응답 래퍼 ─────────────────────────────────────────────────────────────
 
@@ -42,7 +43,9 @@ data class MyInfo(
 // ─── 요청 모델 ──────────────────────────────────────────────────────────────────
 
 data class FcmTokenRequest(
-    val fcmToken: String
+    val fcmToken: String,
+    val deviceId: String,
+    val platformType: String = "ANDROID"
 )
 
 // ─── Retrofit 인터페이스 ────────────────────────────────────────────────────────
@@ -84,8 +87,10 @@ interface ApiService {
     suspend fun getHome(): Response<ApiResponse<HomeData>>
 
     /**
-     * FCM 토큰 등록: 로그인 직후 호출하여 푸시 알림을 받을 수 있도록 합니다.
+     * FCM 토큰 등록·갱신: 앱 실행 시마다 호출하여 항상 최신 토큰을 유지합니다.
+     * - platformType은 항상 ANDROID로 고정
+     * - deviceId로 기기를 식별해 upsert 처리
      */
-    @POST("api/v1/auth/fcm-token")
+    @PUT("api/v1/fcm/token")
     suspend fun registerFcmToken(@Body request: FcmTokenRequest): Response<ApiResponse<Unit>>
 }

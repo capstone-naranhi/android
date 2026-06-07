@@ -66,6 +66,16 @@ class SessionRepository {
 
     private suspend fun registerFcmToken() {
         val token = FcmTokenProvider.getToken() ?: return
-        runCatching { api.registerFcmToken(FcmTokenRequest(token)) }
+        val deviceId = SessionManager.deviceId ?: return
+        runCatching { api.registerFcmToken(FcmTokenRequest(fcmToken = token, deviceId = deviceId)) }
+    }
+
+    /**
+     * 앱 실행 시마다 호출: 세션이 살아 있는 상태에서 FCM 토큰을 갱신합니다.
+     * 실패해도 앱 동작에는 영향 없음.
+     */
+    suspend fun refreshFcmToken() {
+        if (!SessionManager.hasValidSession) return
+        registerFcmToken()
     }
 }
