@@ -1,13 +1,16 @@
 package com.example.android.data.network
 
 import com.example.android.data.model.HomeData
+import com.example.android.data.model.NotificationDetailData
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 
 // ─── 공통 응답 래퍼 ─────────────────────────────────────────────────────────────
 
@@ -85,6 +88,24 @@ interface ApiService {
      */
     @GET("api/v1/home")
     suspend fun getHome(): Response<ApiResponse<HomeData>>
+
+    /**
+     * 알림 상세 조회.
+     * - notificationId: 알림 PK (Long)
+     * - 응답 type에 따라 safetyDetail / deviceDetail / generalDetail 중 하나만 non-null
+     */
+    @GET("api/v1/notifications/{notificationId}")
+    suspend fun getNotificationDetail(
+        @Path("notificationId") notificationId: Long
+    ): Response<ApiResponse<NotificationDetailData>>
+
+    /**
+     * 알림 읽음 처리.
+     */
+    @PATCH("api/v1/notifications/{notificationId}/read")
+    suspend fun readNotification(
+        @Path("notificationId") notificationId: Long
+    ): Response<ApiResponse<Unit>>
 
     /**
      * FCM 토큰 등록·갱신: 앱 실행 시마다 호출하여 항상 최신 토큰을 유지합니다.

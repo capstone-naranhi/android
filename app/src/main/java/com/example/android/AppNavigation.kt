@@ -177,18 +177,25 @@ fun AppNavigation() {
         composable(
             route = Routes.SAFETY_NOTIFICATION_DETAIL,
             arguments = listOf(navArgument("notificationId") { type = NavType.StringType })
-        ) {
+        ) { backStackEntry ->
+            val notificationId = backStackEntry.arguments?.getString("notificationId") ?: ""
             SafetyNotificationDetailScreen(
-                onBack       = { navController.popBackStack() },
-                onConfirmNow = { navigateTab(navController, Routes.LIVE) }
+                notificationId = notificationId,
+                onBack         = { navController.popBackStack() },
+                onConfirmNow   = { navigateTab(navController, Routes.LIVE) }
             )
         }
 
         composable(
             route = Routes.DEVICE_NOTIFICATION_DETAIL,
             arguments = listOf(navArgument("notificationId") { type = NavType.StringType })
-        ) {
-            DeviceNotificationDetailScreen(onBack = { navController.popBackStack() })
+        ) { backStackEntry ->
+            val notificationId = backStackEntry.arguments?.getString("notificationId") ?: ""
+            DeviceNotificationDetailScreen(
+                notificationId    = notificationId,
+                onBack            = { navController.popBackStack() },
+                onGoToDeviceStatus = { navigateTab(navController, Routes.DEVICE_DETAIL) }
+            )
         }
 
         composable(Routes.DEVICE_DETAIL) {

@@ -17,22 +17,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.android.data.model.DeviceComponentStatus
-import com.example.android.data.model.DeviceNotificationDetail
-import com.example.android.ui.theme.AndroidTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.android.data.model.NotificationDetailData
+import com.example.android.data.model.toComponentLabel
+import com.example.android.data.model.toKoreanDateTimeString
+import com.example.android.data.model.toStatusLabel
 import com.example.android.ui.theme.AppBackground
+import com.example.android.ui.theme.BrandPrimary
 import com.example.android.ui.theme.DangerContent
 import com.example.android.ui.theme.NanumSquareRound
 import com.example.android.ui.theme.NeutralSubText
@@ -40,37 +46,19 @@ import com.example.android.ui.theme.NeutralText
 import com.example.android.ui.theme.StatusOnline
 import com.example.android.ui.theme.WarningContent
 
-// ─── 샘플 데이터 ──────────────────────────────────────────────────────────────
-
-private val sampleDeviceDetail = DeviceNotificationDetail(
-    id = "3",
-    badgeLabel = "장치",
-    title = "거실 카메라 연결 끊김",
-    deviceDescription = "거실 카메라",
-    dateTimeText = "2026. 04. 20 · 오전 9:14",
-    component = "카메라",
-    previousStatus = "ONLINE",
-    currentStatus = "OFFLINE",
-    deviceName = "거실",
-    reason = "네트워크 연결 끊김",
-    componentStatuses = listOf(
-        DeviceComponentStatus("카메라", false),
-        DeviceComponentStatus("마이크", false),
-        DeviceComponentStatus("보드(Jetson)", false),
-    ),
-    lastHeartbeat = "09:14:02"
-)
-
 // ─── 화면 ─────────────────────────────────────────────────────────────────────
 
 @Composable
 fun DeviceNotificationDetailScreen(
-    detail: DeviceNotificationDetail = sampleDeviceDetail,
+    notificationId: String,
     onBack: () -> Unit = {},
     onGoToDeviceStatus: () -> Unit = {},
-    onContactSupport: () -> Unit = {}
+    viewModel: NotificationDetailViewModel = viewModel(
+        key = notificationId,
+        factory = NotificationDetailViewModel.factory(notificationId)
+    )
 ) {
-    val accentColor = Color(0xFF8B96AA) // 장치 알림 고정 색상
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -79,11 +67,65 @@ fun DeviceNotificationDetailScreen(
             .statusBarsPadding()
     ) {
         HorizontalDivider(color = Color(0xFFE5E9F0), thickness = 1.dp)
-        // ── 상단 바 ───────────────────────────────────────────────────────────
-        DetailTopBar(title = "알림", onBack = onBack)
+        DetailTopBar(title = "알림 상세", onBack = onBack)
         HorizontalDivider(color = Color(0xFFE5E9F0), thickness = 1.dp)
 
-        // ── 스크롤 콘텐츠 ─────────────────────────────────────────────────────
+        when (val state = uiState) {
+            is NotificationDetailUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandPrimary)
+                }
+            }
+
+            is NotificationDetailUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        fontFamily = NanumSquareRound,
+                        fontSize = 14.sp,
+                        color = NeutralSubText,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            is NotificationDetailUiState.Success -> {
+                DeviceDetailContent(
+                    modifier = Modifier.weight(1f),
+                    data = state.data,
+                    onGoToDeviceStatus = onGoToDeviceStatus
+                )
+            }
+        }
+    }
+}
+
+// ─── 콘텐츠 ───────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DeviceDetailContent(
+    data: NotificationDetailData,
+    onGoToDeviceStatus: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val device = data.deviceDetail
+    val accentColor = Color(0xFF8B96AA) // 장치 알림 고정 색상
+
+    val isOffline = device?.currentStatus?.uppercase() != "ONLINE"
+    val titleText = device?.deviceName?.let {
+        if (isOffline) "$it 연결 끊김" else "$it 연결됨"
+    } ?: "기기 상태 변경"
+    val componentLabel = device?.componentType.toComponentLabel()
+    val beforeLabel = device?.beforeStatus.toStatusLabel()
+    val currentLabel = device?.currentStatus.toStatusLabel()
+    val dateTimeText = data.sentAt.toKoreanDateTimeString()
+
+    Column(modifier = modifier) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -96,60 +138,30 @@ fun DeviceNotificationDetailScreen(
             // 알림 요약 카드
             NotificationSummaryCard(
                 accentColor = accentColor,
-                badgeLabel = detail.badgeLabel,
-                title = detail.title,
-                subtitle = detail.deviceDescription,
-                dateTimeText = detail.dateTimeText
+                badgeLabel = "기기",
+                title = titleText,
+                subtitle = componentLabel,
+                dateTimeText = dateTimeText
             )
 
             // 장치 변경 정보
             DetailSection(title = "장치 변경 정보") {
-                InfoRow(label = "컴포넌트", value = detail.component)
+                InfoRow(label = "컴포넌트", value = componentLabel)
                 InfoDivider()
                 StatusChangeRow(
-                    previous = detail.previousStatus,
-                    current = detail.currentStatus
+                    previous = device?.beforeStatus ?: "-",
+                    previousLabel = beforeLabel,
+                    current = device?.currentStatus ?: "-",
+                    currentLabel = currentLabel
                 )
                 InfoDivider()
-                InfoRow(label = "장치 이름", value = detail.deviceName)
-                InfoDivider()
-                InfoRow(
-                    label = "사유",
-                    value = detail.reason,
-                    valueColor = WarningContent
-                )
-            }
-
-            // 동일 장치 컴포넌트 현황
-            DetailSection(title = "동일 장치 컴포넌트 현황") {
-                detail.componentStatuses.forEachIndexed { index, component ->
-                    ComponentStatusRow(
-                        name = component.name,
-                        isOnline = component.isOnline
-                    )
+                InfoRow(label = "기기 이름", value = device?.deviceName ?: "-")
+                if (!device?.description.isNullOrBlank()) {
                     InfoDivider()
-                }
-                // 마지막 하트비트
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "마지막 하트비트",
-                        fontFamily = NanumSquareRound,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 14.sp,
-                        color = NeutralSubText
-                    )
-                    Text(
-                        text = detail.lastHeartbeat,
-                        fontFamily = NanumSquareRound,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = NeutralText
+                    InfoRow(
+                        label = "사유",
+                        value = device?.description ?: "-",
+                        valueColor = WarningContent
                     )
                 }
             }
@@ -157,7 +169,7 @@ fun DeviceNotificationDetailScreen(
             Spacer(modifier = Modifier.height(4.dp))
         }
 
-        // ── 하단 버튼 영역 ────────────────────────────────────────────────────
+        // 하단 버튼
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -166,20 +178,18 @@ fun DeviceNotificationDetailScreen(
                 text = "장치 상태 화면으로 이동",
                 onClick = onGoToDeviceStatus
             )
-            SecondaryActionButton(
-                text = "지원 문의하기",
-                onClick = onContactSupport
-            )
         }
     }
 }
 
-// ─── 상태 변경 행 (ONLINE → OFFLINE 표시) ─────────────────────────────────────
+// ─── 상태 변경 행 ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun StatusChangeRow(
     previous: String,
+    previousLabel: String,
     current: String,
+    currentLabel: String,
     modifier: Modifier = Modifier
 ) {
     val prevIsOnline = previous.uppercase() == "ONLINE"
@@ -205,14 +215,14 @@ private fun StatusChangeRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            StatusPill(label = previous, color = prevColor)
+            StatusPill(label = previousLabel, color = prevColor)
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                 contentDescription = null,
                 tint = NeutralSubText,
                 modifier = Modifier.size(16.dp)
             )
-            StatusPill(label = current, color = curColor)
+            StatusPill(label = currentLabel, color = curColor)
         }
     }
 }
@@ -232,15 +242,5 @@ private fun StatusPill(label: String, color: Color) {
             fontSize = 12.sp,
             color = color
         )
-    }
-}
-
-// ─── 프리뷰 ───────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun DeviceNotificationDetailScreenPreview() {
-    AndroidTheme {
-        DeviceNotificationDetailScreen()
     }
 }

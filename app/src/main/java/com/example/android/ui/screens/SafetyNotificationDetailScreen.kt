@@ -21,69 +21,50 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.android.data.model.DeviceComponentStatus
-import com.example.android.data.model.NotificationCategory
-import com.example.android.data.model.NotificationSeverity
-import com.example.android.data.model.SafetyNotificationDetail
-import com.example.android.ui.theme.AndroidTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.android.data.model.NotificationDetailData
+import com.example.android.data.model.toKoreanDateTimeString
+import com.example.android.data.model.toDurationText
+import com.example.android.data.model.toSeverityLabel
 import com.example.android.ui.theme.AppBackground
+import com.example.android.ui.theme.BrandPrimary
 import com.example.android.ui.theme.DangerContent
+import com.example.android.ui.theme.InfoContent
 import com.example.android.ui.theme.NanumSquareRound
 import com.example.android.ui.theme.NeutralSubText
 import com.example.android.ui.theme.NeutralText
-import com.example.android.ui.theme.StatusOnline
 import com.example.android.ui.theme.VideoBackground
 import com.example.android.ui.theme.WarningContent
-
-// ─── 샘플 데이터 ──────────────────────────────────────────────────────────────
-
-private val sampleSafetyDetail = SafetyNotificationDetail(
-    id = "1",
-    category = NotificationCategory.SAFETY_DANGER,
-    badgeLabel = "위험",
-    title = "질식 위험 감지됨",
-    cameraName = "아기방 카메라",
-    dateTimeText = "2026. 04. 20 · 오전 10:32",
-    hasRecording = true,
-    recordingDurationText = "00:08",
-    eventType = "질식 위험",
-    severity = "위험 (DANGER)",
-    severityLevel = NotificationSeverity.DANGER,
-    durationText = "8초",
-    camera = "아기방",
-    deviceComponents = listOf(
-        DeviceComponentStatus("카메라", true),
-        DeviceComponentStatus("마이크", true),
-        DeviceComponentStatus("보드(Jetson)", true),
-    )
-)
 
 // ─── 화면 ─────────────────────────────────────────────────────────────────────
 
 @Composable
 fun SafetyNotificationDetailScreen(
-    detail: SafetyNotificationDetail = sampleSafetyDetail,
+    notificationId: String,
     onBack: () -> Unit = {},
-    onConfirmNow: () -> Unit = {}
+    onConfirmNow: () -> Unit = {},
+    viewModel: NotificationDetailViewModel = viewModel(
+        key = notificationId,
+        factory = NotificationDetailViewModel.factory(notificationId)
+    )
 ) {
-    val accentColor = when (detail.category) {
-        NotificationCategory.SAFETY_DANGER  -> DangerContent
-        NotificationCategory.SAFETY_CAUTION -> WarningContent
-        else                                -> Color(0xFF3D7EFF)
-    }
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -92,11 +73,66 @@ fun SafetyNotificationDetailScreen(
             .statusBarsPadding()
     ) {
         HorizontalDivider(color = Color(0xFFE5E9F0), thickness = 1.dp)
-        // ── 상단 바 ───────────────────────────────────────────────────────────
-        DetailTopBar(title = "알림", onBack = onBack)
+        DetailTopBar(title = "알림 상세", onBack = onBack)
         HorizontalDivider(color = Color(0xFFE5E9F0), thickness = 1.dp)
 
-        // ── 스크롤 콘텐츠 ─────────────────────────────────────────────────────
+        when (val state = uiState) {
+            is NotificationDetailUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandPrimary)
+                }
+            }
+
+            is NotificationDetailUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        fontFamily = NanumSquareRound,
+                        fontSize = 14.sp,
+                        color = NeutralSubText,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            is NotificationDetailUiState.Success -> {
+                SafetyDetailContent(
+                    modifier = Modifier.weight(1f),
+                    data = state.data,
+                    onConfirmNow = onConfirmNow
+                )
+            }
+        }
+    }
+}
+
+// ─── 콘텐츠 ───────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SafetyDetailContent(
+    data: NotificationDetailData,
+    onConfirmNow: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val safety = data.safetyDetail
+
+    val severityStr = safety?.severity?.uppercase()
+    val accentColor = when (severityStr) {
+        "DANGER"  -> DangerContent
+        "CAUTION" -> WarningContent
+        else      -> InfoContent
+    }
+
+    val badgeLabel = safety?.severity.toSeverityLabel()
+    val eventLabel = safety?.eventType?.label ?: "안전 이벤트"
+    val deviceName = safety?.deviceName ?: "-"
+    val dateTimeText = data.sentAt.toKoreanDateTimeString()
+    val hasVideo = !safety?.videoUrl.isNullOrBlank()
+
+    Column(modifier = modifier) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -109,58 +145,49 @@ fun SafetyNotificationDetailScreen(
             // 알림 요약 카드
             NotificationSummaryCard(
                 accentColor = accentColor,
-                badgeLabel = detail.badgeLabel,
-                title = detail.title,
-                subtitle = detail.cameraName,
-                dateTimeText = detail.dateTimeText
+                badgeLabel = badgeLabel,
+                title = eventLabel,
+                subtitle = deviceName,
+                dateTimeText = dateTimeText
             )
 
-            // 녹화 영상
-            if (detail.hasRecording) {
+            // 녹화 영상 섹션
+            if (hasVideo) {
                 RecordedVideoSection(
                     accentColor = accentColor,
-                    durationText = detail.recordingDurationText
+                    videoUrl = safety?.videoUrl ?: ""
                 )
             }
 
             // 감지 정보
             DetailSection(title = "감지 정보") {
-                InfoRow(label = "이벤트 유형", value = detail.eventType)
+                InfoRow(label = "이벤트 유형", value = eventLabel)
                 InfoDivider()
                 InfoRow(
                     label = "심각도",
-                    value = detail.severity,
-                    valueColor = when (detail.severityLevel) {
-                        NotificationSeverity.DANGER  -> DangerContent
-                        NotificationSeverity.WARNING -> WarningContent
-                        NotificationSeverity.INFO    -> Color(0xFF3D7EFF)
-                    }
+                    value = badgeLabel,
+                    valueColor = accentColor
                 )
                 InfoDivider()
-                InfoRow(label = "지속 시간", value = detail.durationText)
+                InfoRow(
+                    label = "지속 시간",
+                    value = safety?.durationSecond.toDurationText()
+                )
                 InfoDivider()
-                InfoRow(label = "카메라", value = detail.camera)
-            }
-
-            // 감지 당시 장치 상태
-            if (detail.deviceComponents.isNotEmpty()) {
-                DetailSection(title = "감지 당시 장치 상태") {
-                    detail.deviceComponents.forEachIndexed { index, component ->
-                        ComponentStatusRow(
-                            name = component.name,
-                            isOnline = component.isOnline
-                        )
-                        if (index < detail.deviceComponents.lastIndex) {
-                            InfoDivider()
-                        }
-                    }
+                InfoRow(label = "감지 기기", value = deviceName)
+                if (safety?.detectedAt != null) {
+                    InfoDivider()
+                    InfoRow(
+                        label = "감지 시각",
+                        value = safety.detectedAt.toKoreanDateTimeString()
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
         }
 
-        // ── 하단 버튼 ─────────────────────────────────────────────────────────
+        // 하단 버튼
         Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
             PrimaryActionButton(
                 text = "지금 바로 확인하기",
@@ -170,7 +197,7 @@ fun SafetyNotificationDetailScreen(
     }
 }
 
-// ─── 공통 서브 컴포넌트 ────────────────────────────────────────────────────────
+// ─── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
 
 @Composable
 internal fun DetailTopBar(
@@ -217,7 +244,6 @@ internal fun NotificationSummaryCard(
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
     ) {
-        // 좌측 컬러 바
         Box(
             modifier = Modifier
                 .width(4.dp)
@@ -228,7 +254,6 @@ internal fun NotificationSummaryCard(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // 배지
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50.dp))
@@ -257,13 +282,15 @@ internal fun NotificationSummaryCard(
                 fontSize = 13.sp,
                 color = NeutralSubText
             )
-            Text(
-                text = dateTimeText,
-                fontFamily = NanumSquareRound,
-                fontWeight = FontWeight.Normal,
-                fontSize = 12.sp,
-                color = Color(0xFFAAB3C2)
-            )
+            if (dateTimeText.isNotBlank()) {
+                Text(
+                    text = dateTimeText,
+                    fontFamily = NanumSquareRound,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.sp,
+                    color = Color(0xFFAAB3C2)
+                )
+            }
         }
     }
 }
@@ -271,7 +298,7 @@ internal fun NotificationSummaryCard(
 @Composable
 private fun RecordedVideoSection(
     accentColor: Color,
-    durationText: String,
+    videoUrl: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -280,9 +307,8 @@ private fun RecordedVideoSection(
             .height(196.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(VideoBackground)
-            .clickable { /* 녹화 재생 */ }
+            .clickable { /* TODO: 영상 재생 */ }
     ) {
-        // 녹화됨 배지 (녹화 영상은 항상 초록색 고정)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -292,15 +318,13 @@ private fun RecordedVideoSection(
                 .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text(
-                text = "녹화됨",
+                text = "녹화 영상",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
                 color = Color.White
             )
         }
-
-        // 재생 버튼 + 영상 길이
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -313,15 +337,13 @@ private fun RecordedVideoSection(
                 modifier = Modifier.size(52.dp)
             )
             Text(
-                text = "영상 재생 (${durationText})",
+                text = "탭하여 영상 보기",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Normal,
                 fontSize = 13.sp,
                 color = Color.White.copy(alpha = 0.6f)
             )
         }
-
-        // 카메라 아이콘 (우하단)
         Icon(
             imageVector = Icons.Outlined.Videocam,
             contentDescription = null,
@@ -423,8 +445,8 @@ internal fun ComponentStatusRow(
 
 @Composable
 internal fun StatusChip(isOnline: Boolean) {
-    val chipColor = if (isOnline) StatusOnline else DangerContent
-    val label = if (isOnline) "ONLINE" else "OFFLINE"
+    val chipColor = if (isOnline) Color(0xFF4CAF50) else DangerContent
+    val label = if (isOnline) "온라인" else "오프라인"
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50.dp))
@@ -451,7 +473,7 @@ internal fun PrimaryActionButton(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF7A1A1A))
+            .background(DangerContent)
             .clickable { onClick() }
             .padding(vertical = 16.dp),
         contentAlignment = Alignment.Center
@@ -488,15 +510,5 @@ internal fun SecondaryActionButton(
             fontSize = 15.sp,
             color = NeutralText
         )
-    }
-}
-
-// ─── 프리뷰 ───────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun SafetyNotificationDetailScreenPreview() {
-    AndroidTheme {
-        SafetyNotificationDetailScreen()
     }
 }
