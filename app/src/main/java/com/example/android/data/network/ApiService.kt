@@ -2,6 +2,8 @@ package com.example.android.data.network
 
 import com.example.android.data.model.HomeData
 import com.example.android.data.model.NotificationDetailData
+import com.example.android.data.model.NotificationListData
+import com.example.android.data.model.UnreadCountData
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -11,6 +13,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 // ─── 공통 응답 래퍼 ─────────────────────────────────────────────────────────────
 
@@ -106,6 +109,23 @@ interface ApiService {
     suspend fun readNotification(
         @Path("notificationId") notificationId: Long
     ): Response<ApiResponse<Unit>>
+
+    /**
+     * 알림 목록 조회 (커서 기반 페이지네이션).
+     * - type: SAFETY / DEVICE / GENERAL (null 이면 전체)
+     * - cursorId: 이전 응답의 nextCursorId (null 이면 첫 페이지)
+     */
+    @GET("api/v1/notifications")
+    suspend fun getNotificationList(
+        @Query("type") type: String? = null,
+        @Query("cursorId") cursorId: Long? = null
+    ): Response<ApiResponse<NotificationListData>>
+
+    /**
+     * 미읽음 알림 수 조회.
+     */
+    @GET("api/v1/notifications/unread-count")
+    suspend fun getUnreadCount(): Response<ApiResponse<UnreadCountData>>
 
     /**
      * FCM 토큰 등록·갱신: 앱 실행 시마다 호출하여 항상 최신 토큰을 유지합니다.
