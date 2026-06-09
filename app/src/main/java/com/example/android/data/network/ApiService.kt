@@ -1,5 +1,6 @@
 package com.example.android.data.network
 
+import com.example.android.data.model.DeviceDetailData
 import com.example.android.data.model.HomeData
 import com.example.android.data.model.NotificationDetailData
 import com.example.android.data.model.NotificationListData
@@ -126,6 +127,17 @@ interface ApiService {
      */
     @GET("api/v1/notifications/unread-count")
     suspend fun getUnreadCount(): Response<ApiResponse<UnreadCountData>>
+
+    /**
+     * 장치 상세 조회.
+     * - boardStatus / cameraStatus / micStatus: ONLINE / OFFLINE
+     * - heartbeatStatus: 마지막 하트비트로부터 60초 이내면 ONLINE
+     * - statusChangeLogs: 최근 20건, changedAt 내림차순
+     */
+    @GET("api/v1/devices/{deviceId}")
+    suspend fun getDeviceDetail(
+        @Path("deviceId") deviceId: Long
+    ): Response<ApiResponse<DeviceDetailData>>
 
     /**
      * FCM 토큰 등록·갱신: 앱 실행 시마다 호출하여 항상 최신 토큰을 유지합니다.

@@ -22,25 +22,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBackIos
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.android.data.model.DeviceDetailData
+import com.example.android.data.model.StatusChangeLogData
+import com.example.android.data.model.toComponentLabel
+import com.example.android.data.model.toTimeAgoText
 import com.example.android.ui.components.BottomNavigationBar
 import com.example.android.ui.components.BottomNavigationItemType
 import com.example.android.ui.theme.AndroidTheme
@@ -58,7 +65,6 @@ import com.example.android.ui.theme.SafeCardAccent
 import com.example.android.ui.theme.SafeCardBg
 import com.example.android.ui.theme.SafeChipBg
 import com.example.android.ui.theme.StatusOnline
-import com.example.android.ui.theme.WarningContent
 
 // ─── Data Models ──────────────────────────────────────────────────────────────
 
@@ -80,52 +86,18 @@ data class StatusHistoryEntry(
     val timeText: String
 )
 
-// ─── Sample Data ──────────────────────────────────────────────────────────────
-
-private fun onlineComponents() = listOf(
-    ComponentInfo("카메라",   Icons.Outlined.Videocam,   true),
-    ComponentInfo("마이크",   Icons.Outlined.Mic,        true),
-    ComponentInfo("보드",     Icons.Outlined.Computer,   true),
-    ComponentInfo("추론 모듈", Icons.Outlined.Psychology, true)
-)
-
-private fun offlineComponents() = listOf(
-    ComponentInfo("카메라",   Icons.Outlined.Videocam,   false),
-    ComponentInfo("마이크",   Icons.Outlined.Mic,        false),
-    ComponentInfo("보드",     Icons.Outlined.Computer,   false),
-    ComponentInfo("추론 모듈", Icons.Outlined.Psychology, null)
-)
-
-private fun onlineHistory() = listOf(
-    StatusHistoryEntry(StatusOnline,    "카메라 ONLINE",  "OFFLINE → ONLINE",              "10:30"),
-    StatusHistoryEntry(DangerContent,   "카메라 OFFLINE", "네트워크 순단",                   "10:28"),
-    StatusHistoryEntry(StatusOnline,    "보드 ONLINE",    "재부팅 완료",                     "어제")
-)
-
-private fun offlineHistory() = listOf(
-    StatusHistoryEntry(DangerContent,   "전체 OFFLINE",  "네트워크 연결 끊김",                "09:14"),
-    StatusHistoryEntry(StatusOnline,    "보드 ONLINE",   "정상 가동 중",                     "어제"),
-    StatusHistoryEntry(WarningContent,  "마이크 순단",    "ONLINE → OFFLINE → ONLINE",       "3일 전")
-)
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 @Composable
 fun DeviceDetailScreen(
-    deviceName: String = "아기방",
-    deviceLocation: String = "아기 침실 천장",
-    isOnline: Boolean = true,
-    cpuUsage: String = "34%",
-    memoryUsage: String = "51%",
-    lastSignalTime: String = "오전 9:14 (1시간 전)",
-    lastEventTime: String = "10분 전",
-    serialNumber: String = "JTN-20240812-001",
-    mqttClientId: String = "baby-jetson-001",
-    registeredDate: String = "2024. 08. 20",
-    onBack: () -> Unit = {}
+    deviceId: Long,
+    onBack: () -> Unit = {},
+    viewModel: DeviceDetailViewModel = viewModel(
+        key = "device_$deviceId",
+        factory = DeviceDetailViewModel.factory(deviceId)
+    )
 ) {
-    val components    = if (isOnline) onlineComponents()  else offlineComponents()
-    val statusHistory = if (isOnline) onlineHistory()     else offlineHistory()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = AppBackground,
@@ -143,74 +115,106 @@ fun DeviceDetailScreen(
         ) {
             Spacer(Modifier.statusBarsPadding())
 
-            // 상단 네비게이션 바
+            val deviceName = when (val s = uiState) {
+                is DeviceDetailUiState.Success -> s.data.deviceName
+                else -> ""
+            }
+
             DeviceDetailTopBar(deviceName = deviceName, onBack = onBack)
             HorizontalDivider(color = Color(0xFFF0F2F5))
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp,
-                    top = 16.dp, bottom = 32.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // 장치 개요 카드
-                item {
-                    DeviceOverviewCard(
-                        deviceName     = deviceName,
-                        deviceLocation = deviceLocation,
-                        isOnline       = isOnline,
-                        components     = components,
-                        lastSignalText = if (!isOnline) lastSignalTime else null
-                    )
+            when (val state = uiState) {
+                is DeviceDetailUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = BrandPrimary)
+                    }
                 }
 
-                // 시스템 현황 (온라인 전용)
-                if (isOnline) {
-                    item {
-                        InfoSection(
-                            title = "시스템 현황",
-                            rows = listOf(
-                                "CPU 사용률"    to cpuUsage,
-                                "메모리 사용률" to memoryUsage,
-                                "마지막 신호 확인" to "방금 전",   // 하트비트 → 마지막 신호 확인
-                                "마지막 이벤트" to lastEventTime
-                            )
+                is DeviceDetailUiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = state.message,
+                            fontFamily = NanumSquareRound,
+                            fontSize = 14.sp,
+                            color = NeutralSubText,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
 
-                // 점검 방법 카드 (오프라인 전용)
-                if (!isOnline) {
-                    item { TroubleshootingCard() }
-                }
-
-                // 장치 정보
-                item {
-                    InfoSection(
-                        title = "장치 정보",
-                        rows = listOf(
-                            "시리얼 번호"     to serialNumber,
-                            "MQTT Client ID" to mqttClientId,
-                            "등록일"          to registeredDate
-                        )
+                is DeviceDetailUiState.Success -> {
+                    DeviceDetailContent(
+                        data = state.data,
+                        onBack = onBack
                     )
-                }
-
-                // 최근 상태 변경 이력
-                item {
-                    StatusHistorySection(entries = statusHistory)
-                }
-
-                // 재연결 / 지원 문의 버튼 (오프라인 전용)
-                if (!isOnline) {
-                    item {
-                        ActionButtons()
-                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DeviceDetailContent(data: DeviceDetailData, onBack: () -> Unit) {
+    val isOnline = data.heartbeatStatus?.uppercase() == "ONLINE"
+
+    val components = listOf(
+        ComponentInfo("카메라", Icons.Outlined.Videocam,  data.cameraStatus?.uppercase()?.let { it == "ONLINE" }),
+        ComponentInfo("마이크", Icons.Outlined.Mic,       data.micStatus?.uppercase()?.let { it == "ONLINE" }),
+        ComponentInfo("보드",   Icons.Outlined.Computer,  data.boardStatus?.uppercase()?.let { it == "ONLINE" })
+    )
+
+    val statusHistory = data.statusChangeLogs.map { it.toStatusHistoryEntry() }
+
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = 16.dp, end = 16.dp,
+            top = 16.dp, bottom = 32.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            DeviceOverviewCard(
+                deviceName     = data.deviceName,
+                deviceLocation = data.locationName,
+                isOnline       = isOnline,
+                components     = components
+            )
+        }
+
+        if (!isOnline) {
+            item { TroubleshootingCard() }
+        }
+
+        item {
+            InfoSection(
+                title = "장치 정보",
+                rows = listOf("시리얼 번호" to data.deviceSerialNumber)
+            )
+        }
+
+        if (statusHistory.isNotEmpty()) {
+            item { StatusHistorySection(entries = statusHistory) }
+        }
+
+        if (!isOnline) {
+            item { ActionButtons() }
+        }
+    }
+}
+
+private fun StatusChangeLogData.toStatusHistoryEntry(): StatusHistoryEntry {
+    val label       = componentType.toComponentLabel()
+    val curIsOnline = currentStatus?.uppercase() == "ONLINE"
+    val dotColor    = if (curIsOnline) StatusOnline else DangerContent
+    val title       = "$label ${currentStatus ?: "-"}"
+    val description = "${beforeStatus ?: "-"} → ${currentStatus ?: "-"}"
+    val timeText    = changedAt.toTimeAgoText()
+    return StatusHistoryEntry(dotColor, title, description, timeText)
 }
 
 // ─── Top Bar ─────────────────────────────────────────────────────────────────
@@ -230,10 +234,10 @@ private fun DeviceDetailTopBar(deviceName: String, onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Icon(
-                imageVector     = Icons.AutoMirrored.Outlined.ArrowBackIos,
+                imageVector        = Icons.AutoMirrored.Outlined.ArrowBackIos,
                 contentDescription = "뒤로",
-                tint            = InfoContent,
-                modifier        = Modifier.size(14.dp)
+                tint               = InfoContent,
+                modifier           = Modifier.size(14.dp)
             )
             Text(
                 text       = "기기 목록",
@@ -244,14 +248,16 @@ private fun DeviceDetailTopBar(deviceName: String, onBack: () -> Unit) {
             )
         }
 
-        Text(
-            text       = deviceName,
-            fontFamily = NanumSquareRound,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize   = 17.sp,
-            color      = NeutralText,
-            modifier   = Modifier.align(Alignment.Center)
-        )
+        if (deviceName.isNotEmpty()) {
+            Text(
+                text       = deviceName,
+                fontFamily = NanumSquareRound,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize   = 17.sp,
+                color      = NeutralText,
+                modifier   = Modifier.align(Alignment.Center)
+            )
+        }
     }
 }
 
@@ -262,13 +268,12 @@ private fun DeviceOverviewCard(
     deviceName: String,
     deviceLocation: String,
     isOnline: Boolean,
-    components: List<ComponentInfo>,
-    lastSignalText: String?
+    components: List<ComponentInfo>
 ) {
-    val cardBg       = if (isOnline) SafeCardBg     else DangerCardBg
-    val iconBg       = if (isOnline) SafeChipBg     else DangerChipBg
-    val accentColor  = if (isOnline) SafeCardAccent else DangerCardAccent
-    val statusText   = if (isOnline) "연결 중"       else "연결 끊김"
+    val cardBg      = if (isOnline) SafeCardBg     else DangerCardBg
+    val iconBg      = if (isOnline) SafeChipBg     else DangerChipBg
+    val accentColor = if (isOnline) SafeCardAccent else DangerCardAccent
+    val statusText  = if (isOnline) "연결 중"       else "연결 끊김"
 
     Column(
         modifier = Modifier
@@ -278,7 +283,6 @@ private fun DeviceOverviewCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 헤더: 아이콘 + 이름/위치 + 상태 배지
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -319,7 +323,6 @@ private fun DeviceOverviewCard(
                 )
             }
 
-            // 연결 상태 배지
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -339,19 +342,7 @@ private fun DeviceOverviewCard(
             }
         }
 
-        // 2×2 컴포넌트 그리드
         ComponentTileGrid(components = components)
-
-        // 마지막 신호 확인 (오프라인 전용, 기존 '마지막 하트비트' 대체)
-        if (lastSignalText != null) {
-            Text(
-                text       = "마지막 신호 확인: $lastSignalText",
-                fontFamily = NanumSquareRound,
-                fontWeight = FontWeight.Normal,
-                fontSize   = 12.sp,
-                color      = accentColor.copy(alpha = 0.72f)
-            )
-        }
     }
 }
 
@@ -412,13 +403,10 @@ private fun ComponentTile(component: ComponentInfo, modifier: Modifier = Modifie
     }
 }
 
-// ─── Info Section (시스템 현황 / 장치 정보 공용) ───────────────────────────────
+// ─── Info Section ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun InfoSection(
-    title: String,
-    rows: List<Pair<String, String>>
-) {
+private fun InfoSection(title: String, rows: List<Pair<String, String>>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text       = title,
@@ -623,31 +611,5 @@ private fun ActionButtons() {
                 color      = NeutralText
             )
         }
-    }
-}
-
-// ─── Preview ──────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true, name = "정상 상태")
-@Composable
-fun DeviceDetailOnlinePreview() {
-    AndroidTheme {
-        DeviceDetailScreen(
-            deviceName     = "아기방",
-            deviceLocation = "아기 침실 천장",
-            isOnline       = true
-        )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, name = "오프라인 상태")
-@Composable
-fun DeviceDetailOfflinePreview() {
-    AndroidTheme {
-        DeviceDetailScreen(
-            deviceName     = "거실",
-            deviceLocation = "거실 선반 위",
-            isOnline       = false
-        )
     }
 }

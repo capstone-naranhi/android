@@ -16,9 +16,9 @@ fun Any?.toKoreanDateTimeString(): String {
         val hour = cal.get(Calendar.HOUR_OF_DAY)
         val amPm = if (hour < 12) "오전" else "오후"
         val displayHour = when {
-            hour == 0    -> 12
-            hour > 12    -> hour - 12
-            else         -> hour
+            hour == 0 -> 12
+            hour > 12 -> hour - 12
+            else -> hour
         }
         val min = cal.get(Calendar.MINUTE)
         "%d. %02d. %02d · %s %d:%02d".format(
@@ -27,7 +27,9 @@ fun Any?.toKoreanDateTimeString(): String {
             cal.get(Calendar.DAY_OF_MONTH),
             amPm, displayHour, min
         )
-    } catch (e: Exception) { "" }
+    } catch (e: Exception) {
+        ""
+    }
 }
 
 /** 초(Int) → "X초" / "X분 X초" */
@@ -41,25 +43,25 @@ fun Int?.toDurationText(): String {
 /** 컴포넌트 타입 코드 → 한국어 */
 fun String?.toComponentLabel(): String = when (this?.uppercase()) {
     "CAMERA" -> "카메라"
-    "MIC"    -> "마이크"
-    "BOARD"  -> "보드"
-    else     -> this ?: "-"
+    "MIC" -> "마이크"
+    "BOARD" -> "보드"
+    else -> this ?: "-"
 }
 
 /** 상태 코드 → 한국어 */
 fun String?.toStatusLabel(): String = when (this?.uppercase()) {
-    "ONLINE"  -> "온라인"
+    "ONLINE" -> "온라인"
     "OFFLINE" -> "오프라인"
-    "ERROR"   -> "오류"
-    else      -> this ?: "-"
+    "ERROR" -> "오류"
+    else -> this ?: "-"
 }
 
 /** severity 문자열 → 한국어 배지 */
 fun String?.toSeverityLabel(): String = when (this?.uppercase()) {
-    "DANGER"  -> "위험"
+    "DANGER" -> "위험"
     "CAUTION" -> "주의"
-    "INFO"    -> "정보"
-    else      -> this ?: "-"
+    "INFO" -> "정보"
+    else -> this ?: "-"
 }
 
 // ─── API 응답 모델 ─────────────────────────────────────────────────────────────

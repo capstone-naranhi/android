@@ -190,7 +190,7 @@ fun HomeScreen(
     onNavigateToLive: () -> Unit = {},
     onNavigateToNotificationList: () -> Unit = {},
     onNavigateToSafetyDetail: (String) -> Unit = {},
-    onNavigateToDeviceDetail: () -> Unit = {},
+    onNavigateToDeviceDetail: (Long) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -312,7 +312,7 @@ private fun HomeContent(
     onNavigateToLive: () -> Unit,
     onNavigateToNotificationList: () -> Unit,
     onNavigateToSafetyDetail: (String) -> Unit,
-    onNavigateToDeviceDetail: () -> Unit
+    onNavigateToDeviceDetail: (Long) -> Unit
 ) {
     val currentLevel = data.currentStatus.childStatus.toSafetyLevel()
     val timeLabel = data.currentStatus.evaluatedAt.toTimeAgoText()
@@ -361,7 +361,10 @@ private fun HomeContent(
             item {
                 DeviceStatusSection(
                     devices = deviceStatusItems,
-                    onViewAll = onNavigateToDeviceDetail
+                    onViewAll = {
+                        val deviceId = data.deviceStatuses.firstOrNull()?.deviceId
+                        if (deviceId != null) onNavigateToDeviceDetail(deviceId)
+                    }
                 )
             }
         }

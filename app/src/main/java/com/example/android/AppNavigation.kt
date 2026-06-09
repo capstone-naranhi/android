@@ -38,10 +38,11 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val SAFETY_NOTIFICATION_DETAIL = "safety_notification_detail/{notificationId}"
     const val DEVICE_NOTIFICATION_DETAIL = "device_notification_detail/{notificationId}"
-    const val DEVICE_DETAIL = "device_detail"
+    const val DEVICE_DETAIL = "device_detail/{deviceId}"
 
     fun safetyDetailRoute(id: String) = "safety_notification_detail/$id"
     fun deviceNotificationDetailRoute(id: String) = "device_notification_detail/$id"
+    fun deviceDetailRoute(id: Long) = "device_detail/$id"
 }
 
 /** 탭 간 이동 시 백스택이 쌓이지 않도록 HOME까지 popUpTo 처리 */
@@ -91,7 +92,7 @@ fun AppNavigation() {
                 popUpTo(Routes.HOME) { saveState = true }
                 launchSingleTop = true
             }
-            TYPE_DEVICE -> navController.navigate(Routes.DEVICE_DETAIL) {
+            TYPE_DEVICE -> navController.navigate(Routes.deviceNotificationDetailRoute(notifId)) {
                 popUpTo(Routes.HOME) { saveState = true }
                 launchSingleTop = true
             }
@@ -124,7 +125,7 @@ fun AppNavigation() {
                 onNavigateToLive             = { navigateTab(navController, Routes.LIVE) },
                 onNavigateToNotificationList = { navigateTab(navController, Routes.NOTIFICATIONS) },
                 onNavigateToSafetyDetail     = { id -> navController.navigate(Routes.safetyDetailRoute(id)) },
-                onNavigateToDeviceDetail     = { navController.navigate(Routes.DEVICE_DETAIL) }
+                onNavigateToDeviceDetail     = { id -> navController.navigate(Routes.deviceDetailRoute(id)) }
             )
         }
 
@@ -194,12 +195,19 @@ fun AppNavigation() {
             DeviceNotificationDetailScreen(
                 notificationId    = notificationId,
                 onBack            = { navController.popBackStack() },
-                onGoToDeviceStatus = { navigateTab(navController, Routes.DEVICE_DETAIL) }
+                onGoToDeviceStatus = { id -> navController.navigate(Routes.deviceDetailRoute(id)) }
             )
         }
 
-        composable(Routes.DEVICE_DETAIL) {
-            DeviceDetailScreen(onBack = { navController.popBackStack() })
+        composable(
+            route = Routes.DEVICE_DETAIL,
+            arguments = listOf(navArgument("deviceId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val deviceId = backStackEntry.arguments?.getLong("deviceId") ?: 0L
+            DeviceDetailScreen(
+                deviceId = deviceId,
+                onBack   = { navController.popBackStack() }
+            )
         }
     }
 }

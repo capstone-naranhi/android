@@ -52,7 +52,7 @@ import com.example.android.ui.theme.WarningContent
 fun DeviceNotificationDetailScreen(
     notificationId: String,
     onBack: () -> Unit = {},
-    onGoToDeviceStatus: () -> Unit = {},
+    onGoToDeviceStatus: (Long) -> Unit = {},
     viewModel: NotificationDetailViewModel = viewModel(
         key = notificationId,
         factory = NotificationDetailViewModel.factory(notificationId)
@@ -110,7 +110,7 @@ fun DeviceNotificationDetailScreen(
 @Composable
 private fun DeviceDetailContent(
     data: NotificationDetailData,
-    onGoToDeviceStatus: () -> Unit,
+    onGoToDeviceStatus: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val device = data.deviceDetail
@@ -176,7 +176,7 @@ private fun DeviceDetailContent(
         ) {
             PrimaryActionButton(
                 text = "장치 상태 화면으로 이동",
-                onClick = onGoToDeviceStatus
+                onClick = { onGoToDeviceStatus(data.deviceDetail?.deviceId ?: 0L) }
             )
         }
     }
