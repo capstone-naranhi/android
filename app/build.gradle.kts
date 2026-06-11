@@ -32,6 +32,7 @@ android {
         // 서버 IP/Port를 BuildConfig 필드로 주입 — 소스코드에 하드코딩하지 않음
         buildConfigField("String", "SERVER_IP", "\"${localProps["SERVER_IP"] ?: "192.168.0.1"}\"")
         buildConfigField("String", "SERVER_PORT", "\"${localProps["SERVER_PORT"] ?: "8080"}\"")
+        buildConfigField("String", "MQTT_BROKER_URL", "\"${localProps["MQTT_BROKER_URL"] ?: "tcp://localhost:1883"}\"")
     }
 
     buildTypes {
@@ -46,6 +47,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    packaging {
+        resources {
+            pickFirsts += setOf(
+                "lib/armeabi-v7a/libc++_shared.so",
+                "lib/arm64-v8a/libc++_shared.so",
+                "lib/x86/libc++_shared.so",
+                "lib/x86_64/libc++_shared.so"
+            )
+        }
     }
     buildFeatures {
         compose = true
@@ -74,6 +85,10 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+    // WebRTC
+    implementation("io.github.webrtc-sdk:android:125.6422.07")
+    // MQTT
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

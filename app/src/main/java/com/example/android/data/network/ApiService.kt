@@ -2,8 +2,12 @@ package com.example.android.data.network
 
 import com.example.android.data.model.DeviceDetailData
 import com.example.android.data.model.HomeData
+import com.example.android.data.model.LiveSessionData
+import com.example.android.data.model.LiveSessionRequest
 import com.example.android.data.model.NotificationDetailData
 import com.example.android.data.model.NotificationListData
+import com.example.android.data.model.RegisterDeviceData
+import com.example.android.data.model.RegisterDeviceRequest
 import com.example.android.data.model.UnreadCountData
 import retrofit2.Response
 import retrofit2.http.Body
@@ -127,6 +131,27 @@ interface ApiService {
      */
     @GET("api/v1/notifications/unread-count")
     suspend fun getUnreadCount(): Response<ApiResponse<UnreadCountData>>
+
+    /**
+     * 장치 등록.
+     * - deviceSerial: 장치 시리얼 번호 (보드 하트비트로 Redis에 임시 저장된 번호)
+     * - deviceName: 사용자가 지정한 장치 이름 (최대 20자)
+     * - locationName: 장치 설치 위치 (최대 100자)
+     */
+    @POST("api/v1/devices/register")
+    suspend fun registerDevice(
+        @Body request: RegisterDeviceRequest
+    ): Response<ApiResponse<RegisterDeviceData>>
+
+    /**
+     * 실시간 스트리밍 세션 생성.
+     * - 서버가 sessionId와 deviceSerial을 발급
+     * - MQTT 시그널링에 사용할 토픽: devices/{deviceSerial}/signaling/{client|server}/{sessionId}
+     */
+    @POST("api/v1/live/session")
+    suspend fun createLiveSession(
+        @Body request: LiveSessionRequest
+    ): Response<ApiResponse<LiveSessionData>>
 
     /**
      * 장치 상세 조회.

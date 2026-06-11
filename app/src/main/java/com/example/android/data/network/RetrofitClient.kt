@@ -1,5 +1,6 @@
 package com.example.android.data.network
 
+import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -12,11 +13,16 @@ import java.util.concurrent.TimeUnit
  * - [PersistentCookieJar]를 통해 JSESSIONID를 비롯한 모든 쿠키가
  *   자동으로 저장되고 모든 요청에 첨부됩니다.
  * - [SessionManager.init]이 먼저 호출된 후 사용해야 합니다.
+ * - Logcat 태그 "API" 로 요청/응답 전체(헤더·바디)를 출력합니다.
  */
 object RetrofitClient {
 
+    private const val LOG_TAG = "API"
+
     private val okHttpClient: OkHttpClient by lazy {
-        val logging = HttpLoggingInterceptor().apply {
+        val logging = HttpLoggingInterceptor { message ->
+            Log.d(LOG_TAG, message)
+        }.apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()

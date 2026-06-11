@@ -30,7 +30,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,9 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.android.data.model.ActivityItem
 import com.example.android.ui.components.ActivityRow
 import com.example.android.ui.components.BottomNavigationBar
@@ -51,6 +53,7 @@ import com.example.android.ui.components.InfoCard
 import com.example.android.ui.components.VideoPlayerCard
 import com.example.android.ui.theme.AndroidTheme
 import com.example.android.ui.theme.AppBackground
+import com.example.android.ui.theme.DangerContent
 import com.example.android.ui.theme.NanumSquareRound
 import com.example.android.ui.theme.NeutralSubText
 import com.example.android.ui.theme.NeutralSurface
@@ -71,8 +74,16 @@ fun LiveScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToMyPage: () -> Unit = {}
+    onNavigateToMyPage: () -> Unit = {},
+    viewModel: LiveViewModel = viewModel()
 ) {
+    val uiState  by viewModel.uiState.collectAsState()
+    val videoTrack by viewModel.videoTrack.collectAsState()
+
+    // 화면 진입 시 스트리밍 시작, 이탈 시 중지
+    LaunchedEffect(Unit) { viewModel.startStream() }
+    DisposableEffect(Unit) { onDispose { viewModel.stopStream() } }
+
     var showInfoCard by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(400)
@@ -104,15 +115,13 @@ fun LiveScreen(
                 HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
                 LiveTitleRow(
+                    connectionState = uiState.connectionState,
                     onSettingsClick = onNavigateToSettings,
-                    onProfileClick = onNavigateToMyPage,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                    onProfileClick  = onNavigateToMyPage,
+                    modifier        = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
                 )
 
-                HorizontalDivider(
-                    color = NeutralSurface,
-                    thickness = 1.dp
-                )
+                HorizontalDivider(color = NeutralSurface, thickness = 1.dp)
 
                 LazyColumn(
                     contentPadding = PaddingValues(
@@ -121,21 +130,36 @@ fun LiveScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    item { VideoPlayerCard() }
+                    item {
+                        VideoPlayerCard(
+                            videoTrack     = videoTrack,
+                            eglBaseContext = viewModel.getEglBaseContext()
+                        )
+                    }
+
+                    // 에러 메시지
+                    if (uiState.connectionState == LiveConnectionState.ERROR) {
+                        item {
+                            ErrorBanner(
+                                message = uiState.errorMessage ?: "연결 오류",
+                                onRetry = { viewModel.startStream() }
+                            )
+                        }
+                    }
+
                     item { CurrentStatusCard() }
                     item { RecentActivitySection(activities = sampleActivities) }
                 }
             }
 
-            // 하단 플로팅 안내 카드
             AnimatedVisibility(
-                visible = showInfoCard,
+                visible  = showInfoCard,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 enter = slideInVertically(
                     initialOffsetY = { it },
-                    animationSpec = tween(durationMillis = 400)
+                    animationSpec  = tween(durationMillis = 400)
                 ) + fadeIn(animationSpec = tween(durationMillis = 300)),
                 exit = slideOutVertically(
                     targetOffsetY = { it },
@@ -152,39 +176,49 @@ fun LiveScreen(
 
 @Composable
 private fun LiveTitleRow(
+    connectionState: LiveConnectionState,
     onSettingsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val (dotColor, statusText) = when (connectionState) {
+        LiveConnectionState.STREAMING   -> StatusOnline to "스트리밍 중"
+        LiveConnectionState.CONNECTING  -> NeutralSubText to "연결 중..."
+        LiveConnectionState.LOADING     -> NeutralSubText to "준비 중..."
+        LiveConnectionState.ERROR       -> DangerContent to "연결 오류"
+        LiveConnectionState.DISCONNECTED -> DangerContent to "연결 끊김"
+        LiveConnectionState.IDLE        -> NeutralSubText to "대기 중"
+    }
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment     = Alignment.CenterVertically
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "실시간 모니터링",
+                text       = "실시간 모니터링",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp,
-                color = NeutralText
+                fontSize   = 20.sp,
+                color      = NeutralText
             )
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(StatusOnline)
+                        .background(dotColor)
                 )
                 Text(
-                    text = "스트리밍 중",
+                    text       = statusText,
                     fontFamily = NanumSquareRound,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 13.sp,
-                    color = StatusOnline
+                    fontSize   = 13.sp,
+                    color      = dotColor
                 )
             }
         }
@@ -199,10 +233,10 @@ private fun LiveTitleRow(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Settings,
+                    imageVector        = Icons.Outlined.Settings,
                     contentDescription = "설정",
-                    tint = NeutralSubText,
-                    modifier = Modifier.size(20.dp)
+                    tint               = NeutralSubText,
+                    modifier           = Modifier.size(20.dp)
                 )
             }
             Box(
@@ -214,13 +248,45 @@ private fun LiveTitleRow(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector        = Icons.Default.Person,
                     contentDescription = "프로필",
-                    tint = NeutralSubText,
-                    modifier = Modifier.size(20.dp)
+                    tint               = NeutralSubText,
+                    modifier           = Modifier.size(20.dp)
                 )
             }
         }
+    }
+}
+
+// ─── Error banner ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun ErrorBanner(message: String, onRetry: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(DangerContent.copy(alpha = 0.1f))
+            .clickable { onRetry() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        Text(
+            text       = message,
+            fontFamily = NanumSquareRound,
+            fontWeight = FontWeight.Normal,
+            fontSize   = 13.sp,
+            color      = DangerContent,
+            modifier   = Modifier.weight(1f)
+        )
+        Text(
+            text       = "재시도",
+            fontFamily = NanumSquareRound,
+            fontWeight = FontWeight.Bold,
+            fontSize   = 13.sp,
+            color      = DangerContent
+        )
     }
 }
 
@@ -234,10 +300,9 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 상태 표시 원형 인디케이터
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -258,22 +323,21 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
-                text = "이상 없음",
+                text       = "이상 없음",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 16.sp,
-                color = NeutralText
+                fontSize   = 16.sp,
+                color      = NeutralText
             )
             Text(
-                text = "마지막 확인: 방금 전",
+                text       = "마지막 확인: 방금 전",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Normal,
-                fontSize = 12.sp,
-                color = NeutralSubText
+                fontSize   = 12.sp,
+                color      = NeutralSubText
             )
         }
 
-        // 상태 배지
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50.dp))
@@ -281,11 +345,11 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             Text(
-                text = "안전",
+                text       = "안전",
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = SafeCardAccent
+                fontSize   = 13.sp,
+                color      = SafeCardAccent
             )
         }
     }
@@ -303,11 +367,11 @@ private fun RecentActivitySection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "최근 활동",
+            text       = "최근 활동",
             fontFamily = NanumSquareRound,
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = NeutralText
+            fontSize   = 16.sp,
+            color      = NeutralText
         )
 
         Column(
@@ -321,21 +385,11 @@ private fun RecentActivitySection(
                 ActivityRow(activity = activity)
                 if (index != activities.lastIndex) {
                     HorizontalDivider(
-                        color = NeutralSurface,
+                        color    = NeutralSurface,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
             }
         }
-    }
-}
-
-// ─── Preview ──────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LiveScreenPreview() {
-    AndroidTheme {
-        LiveScreen()
     }
 }

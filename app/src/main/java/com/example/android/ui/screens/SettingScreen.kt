@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Campaign
@@ -69,7 +70,8 @@ fun SettingScreen(
     onBack: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToLive: () -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToDeviceRegister: () -> Unit = {}
 ) {
     var deviceAlertOn by remember { mutableStateOf(true) }
     var reportAlertOn by remember { mutableStateOf(true) }
@@ -115,6 +117,22 @@ fun SettingScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+
+                // ── 장치 관리 ─────────────────────────────────────────────────
+                item { SettingSectionLabel("장치 관리") }
+                item {
+                    SettingCardGroup {
+                        SettingChevronRow(
+                            icon         = Icons.Outlined.AddCircle,
+                            iconBg       = Color(0xFFE8F0FE),
+                            iconTint     = BrandPrimary,
+                            title        = "장치 등록",
+                            subtitle     = "새 카메라 장치를 추가합니다",
+                            trailingText = null,
+                            onClick      = onNavigateToDeviceRegister
+                        )
+                    }
+                }
 
                 // ── 알림 ──────────────────────────────────────────────────────
                 item { SettingSectionLabel("알림") }

@@ -20,6 +20,7 @@ import com.example.android.fcm.IbomMessagingService.Companion.TYPE_DEVICE
 import com.example.android.fcm.IbomMessagingService.Companion.TYPE_SAFETY
 import com.example.android.ui.screens.DeviceDetailScreen
 import com.example.android.ui.screens.DeviceNotificationDetailScreen
+import com.example.android.ui.screens.DeviceRegisterScreen
 import com.example.android.ui.screens.HomeScreen
 import com.example.android.ui.screens.LiveScreen
 import com.example.android.ui.screens.LoginScreen
@@ -38,7 +39,8 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val SAFETY_NOTIFICATION_DETAIL = "safety_notification_detail/{notificationId}"
     const val DEVICE_NOTIFICATION_DETAIL = "device_notification_detail/{notificationId}"
-    const val DEVICE_DETAIL = "device_detail/{deviceId}"
+    const val DEVICE_DETAIL    = "device_detail/{deviceId}"
+    const val DEVICE_REGISTER  = "device_register"
 
     fun safetyDetailRoute(id: String) = "safety_notification_detail/$id"
     fun deviceNotificationDetailRoute(id: String) = "device_notification_detail/$id"
@@ -131,10 +133,11 @@ fun AppNavigation() {
 
         composable(Routes.SETTINGS) {
             SettingScreen(
-                onBack                    = { navController.popBackStack() },
-                onNavigateToHome          = { navigateTab(navController, Routes.HOME) },
-                onNavigateToLive          = { navigateTab(navController, Routes.LIVE) },
-                onNavigateToNotifications = { navigateTab(navController, Routes.NOTIFICATIONS) }
+                onBack                     = { navController.popBackStack() },
+                onNavigateToHome           = { navigateTab(navController, Routes.HOME) },
+                onNavigateToLive           = { navigateTab(navController, Routes.LIVE) },
+                onNavigateToNotifications  = { navigateTab(navController, Routes.NOTIFICATIONS) },
+                onNavigateToDeviceRegister = { navController.navigate(Routes.DEVICE_REGISTER) }
             )
         }
 
@@ -207,6 +210,17 @@ fun AppNavigation() {
             DeviceDetailScreen(
                 deviceId = deviceId,
                 onBack   = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.DEVICE_REGISTER) {
+            DeviceRegisterScreen(
+                onBack       = { navController.popBackStack() },
+                onRegistered = { deviceId ->
+                    navController.navigate(Routes.deviceDetailRoute(deviceId)) {
+                        popUpTo(Routes.SETTINGS)
+                    }
+                }
             )
         }
     }
