@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -71,6 +72,7 @@ fun SettingScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToLive: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToDeviceList: () -> Unit = {},
     onNavigateToDeviceRegister: () -> Unit = {}
 ) {
     var deviceAlertOn by remember { mutableStateOf(true) }
@@ -122,6 +124,16 @@ fun SettingScreen(
                 item { SettingSectionLabel("장치 관리") }
                 item {
                     SettingCardGroup {
+                        SettingChevronRow(
+                            icon         = Icons.Outlined.DevicesOther,
+                            iconBg       = Color(0xFFE8F0FE),
+                            iconTint     = BrandPrimary,
+                            title        = "장치 목록",
+                            subtitle     = "등록된 장치 상태 확인",
+                            trailingText = null,
+                            onClick      = onNavigateToDeviceList
+                        )
+                        SettingDivider()
                         SettingChevronRow(
                             icon         = Icons.Outlined.AddCircle,
                             iconBg       = Color(0xFFE8F0FE),

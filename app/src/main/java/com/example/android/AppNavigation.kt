@@ -19,6 +19,7 @@ import com.example.android.fcm.IbomMessagingService.Companion.EXTRA_TYPE
 import com.example.android.fcm.IbomMessagingService.Companion.TYPE_DEVICE
 import com.example.android.fcm.IbomMessagingService.Companion.TYPE_SAFETY
 import com.example.android.ui.screens.DeviceDetailScreen
+import com.example.android.ui.screens.DeviceListScreen
 import com.example.android.ui.screens.DeviceNotificationDetailScreen
 import com.example.android.ui.screens.DeviceRegisterScreen
 import com.example.android.ui.screens.HomeScreen
@@ -39,6 +40,7 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val SAFETY_NOTIFICATION_DETAIL = "safety_notification_detail/{notificationId}"
     const val DEVICE_NOTIFICATION_DETAIL = "device_notification_detail/{notificationId}"
+    const val DEVICE_LIST      = "device_list"
     const val DEVICE_DETAIL    = "device_detail/{deviceId}"
     const val DEVICE_REGISTER  = "device_register"
 
@@ -137,6 +139,7 @@ fun AppNavigation() {
                 onNavigateToHome           = { navigateTab(navController, Routes.HOME) },
                 onNavigateToLive           = { navigateTab(navController, Routes.LIVE) },
                 onNavigateToNotifications  = { navigateTab(navController, Routes.NOTIFICATIONS) },
+                onNavigateToDeviceList     = { navController.navigate(Routes.DEVICE_LIST) },
                 onNavigateToDeviceRegister = { navController.navigate(Routes.DEVICE_REGISTER) }
             )
         }
@@ -210,6 +213,13 @@ fun AppNavigation() {
             DeviceDetailScreen(
                 deviceId = deviceId,
                 onBack   = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.DEVICE_LIST) {
+            DeviceListScreen(
+                onBack                   = { navController.popBackStack() },
+                onNavigateToDeviceDetail = { id -> navController.navigate(Routes.deviceDetailRoute(id)) }
             )
         }
 

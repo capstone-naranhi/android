@@ -10,6 +10,8 @@ import com.example.android.MainActivity
 import com.example.android.R
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /**
  * FCM 수신 처리 서비스.
@@ -31,6 +33,16 @@ class IbomMessagingService : FirebaseMessagingService() {
         val type    = message.data["type"]    ?: "SAFETY"
         val notifId = message.data["notifId"] ?: ""
         val screen  = message.data["screen"]  ?: "NOTIFICATION_DETAIL"
+
+        // 앱 포그라운드 여부와 무관하게 LiveScreen 최근 활동에 즉시 반영
+        FcmEventBus.emit(
+            FcmEvent(
+                title    = title,
+                body     = body,
+                type     = type,
+                timeText = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+            )
+        )
 
         showNotification(
             title   = title,

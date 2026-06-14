@@ -68,6 +68,8 @@ class MqttSignalingClient(
             isCleanSession     = true
             connectionTimeout  = 15
             keepAliveInterval  = 30
+            userName           = "client-app"
+            password           = "app".toCharArray()
         }
 
         mqttClient?.connect(options, null, object : IMqttActionListener {
@@ -100,7 +102,12 @@ class MqttSignalingClient(
     fun publish(message: SignalingMessage) {
         val payload = message.toJson().toString()
         Log.d(TAG, "Publishing to $publishTopic: $payload")
-        val mqttMessage = MqttMessage(payload.toByteArray()).apply { qos = QOS_SIGNALING }
+        // Offer는 retained=true: 보드가 늦게 구독해도 수신할 수 있도록
+        val retained = message is SignalingMessage.Offer
+        val mqttMessage = MqttMessage(payload.toByteArray()).apply {
+            qos = QOS_SIGNALING
+            isRetained = retained
+        }
         try {
             mqttClient?.publish(publishTopic, mqttMessage)
         } catch (e: Exception) {
@@ -109,6 +116,14 @@ class MqttSignalingClient(
     }
 
     fun disconnect() {
+        try {
+            // retained Offer 메시지 삭제 (빈 payload + retained=true)
+            val clearMsg = MqttMessage(ByteArray(0)).apply {
+                qos = QOS_SIGNALING
+                isRetained = true
+            }
+            mqttClient?.publish(publishTopic, clearMsg)
+        } catch (_: Exception) {}
         try {
             mqttClient?.disconnect()
             Log.d(TAG, "Disconnected from broker")

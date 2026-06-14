@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.android.data.model.ActivityItem
+import com.example.android.data.model.LiveStreamStatusData
 import com.example.android.ui.components.ActivityRow
 import com.example.android.ui.components.BottomNavigationBar
 import com.example.android.ui.components.BottomNavigationItemType
@@ -62,12 +63,6 @@ import com.example.android.ui.theme.SafeCardAccent
 import com.example.android.ui.theme.StatusOnline
 import kotlinx.coroutines.delay
 
-private val sampleActivities = listOf(
-    ActivityItem("14:32", "모니터링 정상"),
-    ActivityItem("14:05", "칭얼거림 감지"),
-    ActivityItem("13:48", "울음 감지"),
-)
-
 /** 실시간 모니터링 화면 */
 @Composable
 fun LiveScreen(
@@ -77,8 +72,10 @@ fun LiveScreen(
     onNavigateToMyPage: () -> Unit = {},
     viewModel: LiveViewModel = viewModel()
 ) {
-    val uiState  by viewModel.uiState.collectAsState()
-    val videoTrack by viewModel.videoTrack.collectAsState()
+    val uiState          by viewModel.uiState.collectAsState()
+    val videoTrack       by viewModel.videoTrack.collectAsState()
+    val liveStreamStatus by viewModel.liveStreamStatus.collectAsState()
+    val activities       by viewModel.activities.collectAsState()
 
     // 화면 진입 시 스트리밍 시작, 이탈 시 중지
     LaunchedEffect(Unit) { viewModel.startStream() }
@@ -147,8 +144,10 @@ fun LiveScreen(
                         }
                     }
 
-                    item { CurrentStatusCard() }
-                    item { RecentActivitySection(activities = sampleActivities) }
+                    item { CurrentStatusCard(liveStreamStatus = liveStreamStatus) }
+                    if (activities.isNotEmpty()) {
+                        item { RecentActivitySection(activities = activities) }
+                    }
                 }
             }
 
@@ -292,8 +291,47 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
 
 // ─── Current status card ──────────────────────────────────────────────────────
 
+private enum class StatusLevel { SAFE, CAUTION, DANGER, OFFLINE }
+
+private fun resolveStatusLevel(status: LiveStreamStatusData?): StatusLevel {
+    if (status == null) return StatusLevel.SAFE
+    if (status.heartbeatStatus?.uppercase() != "ONLINE") return StatusLevel.OFFLINE
+    val event = status.ongoingSafetyEvent ?: return StatusLevel.SAFE
+    return when (event.severity?.uppercase()) {
+        "DANGER"  -> StatusLevel.DANGER
+        "CAUTION" -> StatusLevel.CAUTION
+        else      -> StatusLevel.SAFE
+    }
+}
+
+private data class StatusStyle(
+    val dotColor: Color,
+    val badgeBg: Color,
+    val badgeColor: Color,
+    val title: String,
+    val badge: String
+)
+
 @Composable
-private fun CurrentStatusCard(modifier: Modifier = Modifier) {
+private fun statusStyleFor(level: StatusLevel): StatusStyle = when (level) {
+    StatusLevel.SAFE    -> StatusStyle(SafeCardAccent,  SafeCardAccent.copy(alpha = 0.13f),  SafeCardAccent,     "이상 없음",   "안전")
+    StatusLevel.CAUTION -> StatusStyle(Color(0xFFFFA726), Color(0xFFFFA726).copy(alpha = 0.13f), Color(0xFFE65100), "주의 감지됨", "주의")
+    StatusLevel.DANGER  -> StatusStyle(DangerContent,   DangerContent.copy(alpha = 0.13f),   DangerContent,      "위험 감지됨", "위험")
+    StatusLevel.OFFLINE -> StatusStyle(NeutralSubText,  NeutralSubText.copy(alpha = 0.13f),  NeutralSubText,     "장치 오프라인", "오프라인")
+}
+
+@Composable
+private fun CurrentStatusCard(
+    liveStreamStatus: LiveStreamStatusData?,
+    modifier: Modifier = Modifier
+) {
+    val level = resolveStatusLevel(liveStreamStatus)
+    val style = statusStyleFor(level)
+
+    val subText = liveStreamStatus?.ongoingSafetyEvent?.let { event ->
+        event.eventType?.let { "이벤트: $it" }
+    } ?: liveStreamStatus?.deviceName?.let { "$it 모니터링 중" } ?: "장치 연결 확인 중"
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -307,14 +345,14 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(SafeCardAccent.copy(alpha = 0.15f)),
+                .background(style.dotColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .size(26.dp)
                     .clip(CircleShape)
-                    .background(SafeCardAccent)
+                    .background(style.dotColor)
             )
         }
 
@@ -323,14 +361,14 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
-                text       = "이상 없음",
+                text       = style.title,
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize   = 16.sp,
                 color      = NeutralText
             )
             Text(
-                text       = "마지막 확인: 방금 전",
+                text       = subText,
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Normal,
                 fontSize   = 12.sp,
@@ -341,15 +379,15 @@ private fun CurrentStatusCard(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50.dp))
-                .background(SafeCardAccent.copy(alpha = 0.13f))
+                .background(style.badgeBg)
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             Text(
-                text       = "안전",
+                text       = style.badge,
                 fontFamily = NanumSquareRound,
                 fontWeight = FontWeight.Bold,
                 fontSize   = 13.sp,
-                color      = SafeCardAccent
+                color      = style.badgeColor
             )
         }
     }

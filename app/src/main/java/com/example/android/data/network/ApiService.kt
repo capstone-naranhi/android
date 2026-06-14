@@ -1,7 +1,9 @@
 package com.example.android.data.network
 
 import com.example.android.data.model.DeviceDetailData
+import com.example.android.data.model.DeviceListData
 import com.example.android.data.model.HomeData
+import com.example.android.data.model.LiveStreamStatusData
 import com.example.android.data.model.LiveSessionData
 import com.example.android.data.model.LiveSessionRequest
 import com.example.android.data.model.NotificationDetailData
@@ -133,6 +135,14 @@ interface ApiService {
     suspend fun getUnreadCount(): Response<ApiResponse<UnreadCountData>>
 
     /**
+     * 장치 목록 조회.
+     * - 로그인한 사용자의 모든 장치를 반환
+     * - heartbeatStatus: 마지막 하트비트로부터 60초 이내면 ONLINE
+     */
+    @GET("api/v1/devices")
+    suspend fun getDevices(): Response<ApiResponse<DeviceListData>>
+
+    /**
      * 장치 등록.
      * - deviceSerial: 장치 시리얼 번호 (보드 하트비트로 Redis에 임시 저장된 번호)
      * - deviceName: 사용자가 지정한 장치 이름 (최대 20자)
@@ -152,6 +162,16 @@ interface ApiService {
     suspend fun createLiveSession(
         @Body request: LiveSessionRequest
     ): Response<ApiResponse<LiveSessionData>>
+
+    /**
+     * 실시간 스트리밍 상태 조회.
+     * - heartbeatStatus: 마지막 하트비트로부터 60초 이내면 ONLINE
+     * - ongoingSafetyEvent: durationSecond == 0 인 진행 중인 이벤트, 없으면 null
+     */
+    @GET("api/v1/devices/{deviceId}/live-status")
+    suspend fun getLiveStreamStatus(
+        @Path("deviceId") deviceId: Long
+    ): Response<ApiResponse<LiveStreamStatusData>>
 
     /**
      * 장치 상세 조회.

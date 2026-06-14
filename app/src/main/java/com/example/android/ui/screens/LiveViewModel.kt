@@ -5,12 +5,17 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.android.BuildConfig
+import com.example.android.data.model.ActivityItem
 import com.example.android.data.model.LiveSessionRequest
+import com.example.android.data.model.LiveStreamStatusData
+import com.example.android.data.network.DeviceRepository
 import com.example.android.data.network.RetrofitClient
+import com.example.android.fcm.FcmEventBus
 import com.example.android.webrtc.MqttSignalingClient
 import com.example.android.webrtc.SignalingMessage
 import com.example.android.webrtc.WebRtcClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,12 +50,31 @@ class LiveViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val api = RetrofitClient.apiService
+    private val deviceRepository = DeviceRepository()
 
     private val _uiState = MutableStateFlow(LiveUiState())
     val uiState: StateFlow<LiveUiState> = _uiState.asStateFlow()
 
     private val _videoTrack = MutableStateFlow<VideoTrack?>(null)
     val videoTrack: StateFlow<VideoTrack?> = _videoTrack.asStateFlow()
+
+    private val _liveStreamStatus = MutableStateFlow<LiveStreamStatusData?>(null)
+    val liveStreamStatus: StateFlow<LiveStreamStatusData?> = _liveStreamStatus.asStateFlow()
+
+    private val _activities = MutableStateFlow<List<ActivityItem>>(emptyList())
+    val activities: StateFlow<List<ActivityItem>> = _activities.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            FcmEventBus.events.collect { event ->
+                val newItem = ActivityItem(
+                    timeText    = event.timeText,
+                    description = event.body
+                )
+                _activities.value = listOf(newItem) + _activities.value
+            }
+        }
+    }
 
     private var webRtcClient: WebRtcClient? = null
     private var signalingClient: MqttSignalingClient? = null
@@ -90,25 +114,35 @@ class LiveViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // 2. 라이브 세션 발급
-        val session = runCatching {
-            val res = api.createLiveSession(LiveSessionRequest(deviceId))
-            if (res.isSuccessful && res.body()?.success == true) res.body()!!.data
-            else null
-        }.getOrNull()
+        // 2. WebRTC 초기화를 API 병렬 호출 전에 먼저 시작
+        //    → iceCandidatePoolSize 덕분에 STUN 수집이 API 대기 시간과 겹침
+        withContext(Dispatchers.Main) { initWebRtc() }
 
+        // 3. 스트리밍 상태 조회 + 세션 발급을 병렬로 실행
+        val statusDeferred = viewModelScope.async(Dispatchers.IO) {
+            deviceRepository.getLiveStreamStatus(deviceId)
+        }
+        val sessionDeferred = viewModelScope.async(Dispatchers.IO) {
+            runCatching {
+                val res = api.createLiveSession(LiveSessionRequest(deviceId))
+                if (res.isSuccessful && res.body()?.success == true) res.body()!!.data
+                else null
+            }.getOrNull()
+        }
+
+        statusDeferred.await()
+            .onSuccess { _liveStreamStatus.value = it }
+            .onFailure { Log.w(TAG, "live-status fetch failed: ${it.message}") }
+
+        val session = sessionDeferred.await()
         if (session == null) {
             setError("세션 발급에 실패했습니다")
+            cleanup()
             return
         }
 
         Log.d(TAG, "Session created: ${session.sessionId}, device: ${session.deviceSerial}")
         setState(LiveConnectionState.CONNECTING)
-
-        // 3. WebRTC 클라이언트 초기화 (메인 스레드)
-        withContext(Dispatchers.Main) {
-            initWebRtc()
-        }
 
         // 4. MQTT 시그널링 연결
         connectSignaling(session.deviceSerial, session.sessionId)

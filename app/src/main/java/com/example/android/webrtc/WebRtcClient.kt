@@ -68,12 +68,14 @@ class WebRtcClient(
     private fun createPeerConnection(): PeerConnection? {
         val rtcConfig = PeerConnection.RTCConfiguration(STUN_SERVERS).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            // PeerConnection 생성 즉시 ICE 후보 수집 시작 → createOffer 이후 수집 대기 시간 단축
+            iceCandidatePoolSize = 2
         }
 
         return factory?.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onIceCandidate(candidate: IceCandidate) {
                 Log.d(TAG, "Local ICE candidate: ${candidate.sdp}")
-                onIceCandidate(candidate)
+                this@WebRtcClient.onIceCandidate(candidate)
             }
 
             override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
@@ -129,16 +131,20 @@ class WebRtcClient(
                         Log.d(TAG, "Local description set (offer)")
                         onSuccess(sdp)
                     }
+
                     override fun onSetFailure(error: String?) {
                         onFailure(error ?: "setLocalDescription 실패")
                     }
+
                     override fun onCreateSuccess(p0: SessionDescription?) {}
                     override fun onCreateFailure(p0: String?) {}
                 }, sdp)
             }
+
             override fun onCreateFailure(error: String?) {
                 onFailure(error ?: "createOffer 실패")
             }
+
             override fun onSetSuccess() {}
             override fun onSetFailure(p0: String?) {}
         }, constraints)
@@ -156,9 +162,11 @@ class WebRtcClient(
                 Log.d(TAG, "Remote description set (answer)")
                 onSuccess()
             }
+
             override fun onSetFailure(error: String?) {
                 onFailure(error ?: "setRemoteDescription 실패")
             }
+
             override fun onCreateSuccess(p0: SessionDescription?) {}
             override fun onCreateFailure(p0: String?) {}
         }, sdp)
