@@ -2,8 +2,8 @@ package com.example.android.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
@@ -22,6 +24,8 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,8 +74,11 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val repository = remember { SessionRepository() }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("login_prefs", android.content.Context.MODE_PRIVATE) }
 
-    var username by remember { mutableStateOf("") }
+    var saveId by remember { mutableStateOf(prefs.getBoolean("save_id", false)) }
+    var username by remember { mutableStateOf(if (prefs.getBoolean("save_id", false)) prefs.getString("saved_username", "") ?: "" else "") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -86,144 +94,167 @@ fun LoginScreen(
             errorMessage = null
             focusManager.clearFocus()
             repository.login(username.trim(), password)
-                .onSuccess { onLoginSuccess() }
+                .onSuccess {
+                    prefs.edit()
+                        .putBoolean("save_id", saveId)
+                        .putString("saved_username", if (saveId) username.trim() else "")
+                        .apply()
+                    onLoginSuccess()
+                }
                 .onFailure { errorMessage = it.message ?: "로그인 중 오류가 발생했습니다." }
             isLoading = false
         }
     }
 
     Scaffold(containerColor = AppBackground) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .systemBarsPadding()
                 .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .padding(horizontal = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // ─── 로고 ─────────────────────────────────────────────────────
-                Image(
-                    painter = painterResource(id = R.drawable.logo_ibom),
-                    contentDescription = "아이봄 로고",
-                    modifier = Modifier.size(160.dp)
+            // ─── 로고 ─────────────────────────────────────────────────────
+            Image(
+                painter = painterResource(id = R.drawable.logo_ibom),
+                contentDescription = "아이봄 로고",
+                modifier = Modifier.size(160.dp)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ─── 설명 문구 ─────────────────────────────────────────────────
+            Text(
+                text = "육아 부담을 줄여주는 돌봄 솔루션",
+                fontFamily = NanumSquareRound,
+                fontWeight = FontWeight.Normal,
+                fontSize = 14.sp,
+                color = NeutralSubText,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // ─── 아이디 ────────────────────────────────────────────────────
+            LoginTextField(
+                value = username,
+                onValueChange = { username = it; errorMessage = null },
+                label = "아이디",
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Person,
+                        contentDescription = null,
+                        tint = NeutralSubText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 )
+            )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // ─── 설명 문구 ─────────────────────────────────────────────────
-                Text(
-                    text = "육아 부담을 줄여주는 돌봄 솔루션",
-                    fontFamily = NanumSquareRound,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp,
-                    color = NeutralSubText,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // ─── 아이디 ────────────────────────────────────────────────────
-                LoginTextField(
-                    value = username,
-                    onValueChange = { username = it; errorMessage = null },
-                    label = "아이디",
-                    leadingIcon = {
+            // ─── 비밀번호 ──────────────────────────────────────────────────
+            LoginTextField(
+                value = password,
+                onValueChange = { password = it; errorMessage = null },
+                label = "비밀번호",
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = NeutralSubText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                visualTransformation = if (passwordVisible)
+                    VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            Icons.Outlined.Person,
-                            contentDescription = null,
+                            imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff
+                                          else Icons.Outlined.Visibility,
+                            contentDescription = if (passwordVisible) "비밀번호 숨기기" else "비밀번호 보기",
                             tint = NeutralSubText,
                             modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    )
-                )
-
-                // ─── 비밀번호 ──────────────────────────────────────────────────
-                LoginTextField(
-                    value = password,
-                    onValueChange = { password = it; errorMessage = null },
-                    label = "비밀번호",
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Lock,
-                            contentDescription = null,
-                            tint = NeutralSubText,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    visualTransformation = if (passwordVisible)
-                        VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff
-                                              else Icons.Outlined.Visibility,
-                                contentDescription = if (passwordVisible) "비밀번호 숨기기" else "비밀번호 보기",
-                                tint = NeutralSubText,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { attemptLogin() })
-                )
-
-                // ─── 에러 메시지 ────────────────────────────────────────────────
-                if (errorMessage != null) {
-                    Text(
-                        text = errorMessage!!,
-                        fontFamily = NanumSquareRound,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = DangerContent,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // ─── 로그인 버튼 ────────────────────────────────────────────────
-                Button(
-                    onClick = { attemptLogin() },
-                    enabled = !isLoading,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "로그인",
-                            fontFamily = NanumSquareRound,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = Color.White
                         )
                     }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { attemptLogin() })
+            )
+
+            // ─── 아이디 저장 ────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = saveId,
+                    onCheckedChange = { saveId = it },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = BrandPrimary,
+                        uncheckedColor = NeutralSubText
+                    )
+                )
+                Text(
+                    text = "아이디 저장",
+                    fontFamily = NanumSquareRound,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 13.sp,
+                    color = NeutralSubText
+                )
+            }
+
+            // ─── 에러 메시지 ────────────────────────────────────────────────
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    fontFamily = NanumSquareRound,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = DangerContent,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ─── 로그인 버튼 ────────────────────────────────────────────────
+            Button(
+                onClick = { attemptLogin() },
+                enabled = !isLoading,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else {
+                    Text(
+                        text = "로그인",
+                        fontFamily = NanumSquareRound,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
                 }
             }
         }

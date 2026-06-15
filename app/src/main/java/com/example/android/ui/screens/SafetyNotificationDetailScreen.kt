@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -188,7 +189,7 @@ private fun SafetyDetailContent(
         }
 
         // 하단 버튼
-        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Box(modifier = Modifier.navigationBarsPadding().padding(horizontal = 20.dp, vertical = 16.dp)) {
             PrimaryActionButton(
                 text = "지금 바로 확인하기",
                 onClick = onConfirmNow

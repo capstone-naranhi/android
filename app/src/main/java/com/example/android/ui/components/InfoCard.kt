@@ -68,7 +68,7 @@ fun InfoCard(
             Spacer(modifier = Modifier.width(Dimens.spaceM))
 
             Text(
-                text = "영상 데이터는 암호화되어 전송되며, 보호자만 접근할 수 있습니다.",
+                text = "실시간으로 아이의 상태를 확인할 수 있습니다.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = NeutralText,
                 modifier = Modifier.weight(1f)

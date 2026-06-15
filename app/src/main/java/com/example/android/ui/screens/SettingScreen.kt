@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.DevicesOther
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -84,7 +86,7 @@ fun SettingScreen(
         containerColor = AppBackground,
         bottomBar = {
             BottomNavigationBar(
-                selectedItem = BottomNavigationItemType.NOTIFICATIONS,
+                selectedItem = null,
                 onItemSelected = { item ->
                     when (item) {
                         BottomNavigationItemType.HOME          -> onNavigateToHome()
@@ -103,14 +105,27 @@ fun SettingScreen(
             Spacer(modifier = Modifier.statusBarsPadding())
             HorizontalDivider(color = Color(0xFFF7F9FC), thickness = 1.dp)
 
-            Text(
-                text = "설정",
-                fontFamily = NanumSquareRound,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp,
-                color = NeutralText,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = NeutralText
+                    )
+                }
+                Text(
+                    text = "설정",
+                    fontFamily = NanumSquareRound,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp,
+                    color = NeutralText
+                )
+            }
 
             LazyColumn(
                 contentPadding = PaddingValues(

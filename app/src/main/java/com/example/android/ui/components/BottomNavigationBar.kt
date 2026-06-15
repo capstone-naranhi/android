@@ -51,7 +51,7 @@ private val bottomNavigationItems = listOf(
  */
 @Composable
 fun BottomNavigationBar(
-    selectedItem: BottomNavigationItemType,
+    selectedItem: BottomNavigationItemType?,
     onItemSelected: (BottomNavigationItemType) -> Unit,
     unreadNotificationCount: Int = 0,
     modifier: Modifier = Modifier
