@@ -60,6 +60,7 @@ import org.webrtc.VideoTrack
 fun VideoPlayerCard(
     videoTrack: VideoTrack? = null,
     eglBaseContext: EglBase.Context? = null,
+    onFullscreenClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "live_blink")
@@ -164,7 +165,7 @@ fun VideoPlayerCard(
                     color = Color.Black.copy(alpha = 0.55f),
                     shape = RoundedCornerShape(8.dp)
                 )
-                .clickable { /* 전체화면 전환 */ }
+                .clickable { onFullscreenClick() }
                 .padding(6.dp),
             contentAlignment = Alignment.Center
         ) {

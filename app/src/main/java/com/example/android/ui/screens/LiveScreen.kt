@@ -1,5 +1,7 @@
 package com.example.android.ui.screens
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,9 +26,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.FullscreenExit
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,15 +39,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.android.data.model.ActivityItem
 import com.example.android.data.model.LiveStreamStatusData
@@ -62,6 +72,10 @@ import com.example.android.ui.theme.NeutralText
 import com.example.android.ui.theme.SafeCardAccent
 import com.example.android.ui.theme.StatusOnline
 import kotlinx.coroutines.delay
+import org.webrtc.EglBase
+import org.webrtc.RendererCommon
+import org.webrtc.SurfaceViewRenderer
+import org.webrtc.VideoTrack
 
 /** 실시간 모니터링 화면 */
 @Composable
@@ -87,6 +101,33 @@ fun LiveScreen(
         showInfoCard = true
     }
 
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
+    val activity = LocalContext.current as? Activity
+
+    // 전체화면 진입/해제 시 방향 및 시스템 바 제어
+    DisposableEffect(isFullscreen) {
+        val window = activity?.window ?: return@DisposableEffect onDispose {}
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (isFullscreen) {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose {
+            // 화면 이탈 시 항상 복구
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -129,8 +170,9 @@ fun LiveScreen(
                 ) {
                     item {
                         VideoPlayerCard(
-                            videoTrack     = videoTrack,
-                            eglBaseContext = viewModel.getEglBaseContext()
+                            videoTrack       = videoTrack,
+                            eglBaseContext   = viewModel.getEglBaseContext(),
+                            onFullscreenClick = { isFullscreen = true }
                         )
                     }
 
@@ -167,6 +209,70 @@ fun LiveScreen(
             ) {
                 InfoCard(onDismiss = { showInfoCard = false })
             }
+        }
+    }
+
+    // 전체화면 오버레이
+    if (isFullscreen) {
+        FullscreenVideoOverlay(
+            videoTrack     = videoTrack,
+            eglBaseContext = viewModel.getEglBaseContext(),
+            onClose        = { isFullscreen = false }
+        )
+    }
+    } // Box
+}
+
+// ─── Fullscreen overlay ───────────────────────────────────────────────────────
+
+@Composable
+private fun FullscreenVideoOverlay(
+    videoTrack: VideoTrack?,
+    eglBaseContext: EglBase.Context?,
+    onClose: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (videoTrack != null && eglBaseContext != null) {
+            var renderer by remember { mutableStateOf<SurfaceViewRenderer?>(null) }
+
+            AndroidView(
+                factory = { ctx ->
+                    SurfaceViewRenderer(ctx).apply {
+                        init(eglBaseContext, null)
+                        setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                        setMirror(false)
+                    }.also { renderer = it }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            DisposableEffect(videoTrack) {
+                renderer?.let { videoTrack.addSink(it) }
+                onDispose { renderer?.let { videoTrack.removeSink(it) } }
+            }
+
+            DisposableEffect(Unit) {
+                onDispose { renderer?.release(); renderer = null }
+            }
+        }
+
+        // 닫기 버튼
+        IconButton(
+            onClick  = onClose,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector        = Icons.Outlined.FullscreenExit,
+                contentDescription = "전체화면 종료",
+                tint               = Color.White,
+                modifier           = Modifier.size(32.dp)
+            )
         }
     }
 }
